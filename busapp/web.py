@@ -25,7 +25,10 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
     db.init_schema(conn)
     lock = threading.Lock()  # one shared SQLite connection; endpoints run in a threadpool
     predictors = {name: get_predictor(name, conn) for name in PREDICTORS}
-    rest = rest if rest is not None else MtdRestClient()
+    if rest is None:
+        rest = MtdRestClient()
+        if rest.enabled:
+            threading.Thread(target=rest.keep_warm, name="mtd-rest-warm", daemon=True).start()
     rt_cache = rt_cache or RealtimeCache()
 
     @app.get("/api/stops/search")

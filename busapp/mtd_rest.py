@@ -45,6 +45,25 @@ class MtdRestClient:
             raise MtdRestError(str(err))
         return body.get("result", body.get("Result"))
 
+    def keep_warm(self, interval_s: int = 600, first_timeout_s: float = 60) -> None:
+        """Ping the API forever (run in a daemon thread).
+
+        MTD's API cold-starts after sitting idle (~30 s for the first request), which
+        would make the first search fall back to local results. One cheap call every
+        10 minutes keeps it responsive at ~6 requests/hour.
+        """
+        timeout = first_timeout_s
+        while True:
+            if self.enabled:
+                t0 = time.time()
+                try:
+                    self._client.get("/stops/IT", timeout=timeout)
+                    log.info("MTD REST API warm (%.1fs)", time.time() - t0)
+                except Exception as e:
+                    log.warning("MTD REST API warm-up failed: %s", e)
+            timeout = 30
+            time.sleep(interval_s)
+
     def search_stops(self, query: str) -> list[dict]:
         """Raw StopSearchResult dicts (stopId, name, subName, city, ...)."""
         if not self.enabled:
