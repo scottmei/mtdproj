@@ -1,0 +1,6 @@
+leg_group_id,network_id,from_area_id,to_area_id,from_timeframe_group_id,to_timeframe_group_id,fare_product_id,rule_priority
+fare_free_leg_group,,istop_area,,,,fare_free_product,1
+full_fare_leg_group,,full_fare_area,,,,annual_pass_product,2
+full_fare_leg_group,,full_fare_area,,,,monthly_pass_product,3
+full_fare_leg_group,,full_fare_area,,,,single_ride_product,4
+full_fare_leg_group,,full_fare_area,,weekend_timeframe,weekend_timeframe,all_day_pass_product,5

@@ -1,0 +1,313 @@
+timeframe_group_id,start_time,end_time,service_id
+weekday_timeframe,,,(9A) 6E URB EO
+weekday_timeframe,,,10E SHOW EO
+weekday_timeframe,,,10E SHOW MTTF
+weekday_timeframe,,,10W UHS UMS MF
+weekday_timeframe,,,16A 1 SHOW MF
+weekday_timeframe,,,16A 2 SHOW MF
+weekday_timeframe,,,16B 1 SHOW MF
+weekday_timeframe,,,16B 2 9A SHO MTTF
+weekday_timeframe,,,16B#2 SHOW WED
+weekday_timeframe,,,17E 7E CHA ONLY
+weekday_timeframe,,,17E 7E MF
+weekday_timeframe,,,17E 7E URB ONLY
+weekday_timeframe,,,17W 1 SHOW MF
+weekday_timeframe,,,17W 2 SHOW MF
+weekday_timeframe,,,17W 3 SHOW MF
+weekday_timeframe,,,17W 4 SHOW MF
+weekday_timeframe,,,17W 5 SHOW MF
+weekday_timeframe,,,1N 16B 2 SHO MTTF
+weekday_timeframe,,,1N SHOW #1 MF
+weekday_timeframe,,,1N SHOW #3 WED
+weekday_timeframe,,,1N SHOW 2 MF
+weekday_timeframe,,,1N SHOW MF
+weekday_timeframe,,,1S 8E CHA ONLY
+weekday_timeframe,,,1S 8E SHOW MF
+weekday_timeframe,,,1S 8E URB ONLY
+weekday_timeframe,,,1S SHOW 2
+weekday_timeframe,,,3N 7W NO CHA
+weekday_timeframe,,,3N 7W NO URB
+weekday_timeframe,,,3N 7W SHOW MTTF
+weekday_timeframe,,,3N 7W URB EO MTTF
+weekday_timeframe,,,3N EMS WED
+weekday_timeframe,,,3N SHOW #2 WED
+weekday_timeframe,,,3N SHOW MF
+weekday_timeframe,,,3S 5W CHA ONLY
+weekday_timeframe,,,3S 5W MF
+weekday_timeframe,,,3S 5W URB ONLY
+weekday_timeframe,,,5E #3 SHOW MTTF
+weekday_timeframe,,,5E SHOW 1 WED
+weekday_timeframe,,,5E SHOW 2 WED
+weekday_timeframe,,,5E UHS SHO WED
+weekday_timeframe,,,5E#1 URB EO
+weekday_timeframe,,,5E#1 URB MTTF
+weekday_timeframe,,,5E#3 SHOW WED
+weekday_timeframe,,,6E #2 SHOW WED
+weekday_timeframe,,,6E 7W SHOW WED
+weekday_timeframe,,,6E SHOW EO MTTF
+weekday_timeframe,,,6E SHOW MTTF
+weekday_timeframe,,,7E 1 SHOW WED
+weekday_timeframe,,,7E 2 SHOW WED
+weekday_timeframe,,,7E 5E CHA ONLY
+weekday_timeframe,,,7E 5E MTTF
+weekday_timeframe,,,7E 5E URB EO
+weekday_timeframe,,,7E 5E URB ONLY
+weekday_timeframe,,,7W 1 SHOW WED
+weekday_timeframe,,,7W 2 SHOW MTTF
+weekday_timeframe,,,7W 2 SHOW WED
+weekday_timeframe,,,7W 5E AMSHOW MF
+weekday_timeframe,,,7W 5E CHA ONLY
+weekday_timeframe,,,7W 5E URB ONLY
+weekday_timeframe,,,7W 7E 5E MTTF
+weekday_timeframe,,,7W 7E 5E URBEO MTTF
+weekday_timeframe,,,7W SHOW MF
+weekday_timeframe,,,8E 5E SHOW WED
+weekday_timeframe,,,9A 10E CHA ONLY
+weekday_timeframe,,,9A 10E MTTF
+weekday_timeframe,,,9A 10E URB ONLY
+weekday_timeframe,,,9A 6E MTTF
+weekday_timeframe,,,9A 6E URB ONLY
+weekday_timeframe,,,9A SHOW #2 WED
+weekday_timeframe,,,9A SHOW MF
+weekday_timeframe,,,9A SHOW MTTF
+weekday_timeframe,,,9A SHOW WED
+weekday_timeframe,,,9B 7E CHA ONLY
+weekday_timeframe,,,9B 7E SHO MF
+weekday_timeframe,,,9B 7E SHOW MF
+weekday_timeframe,,,9B 7E URB ONLY
+weekday_timeframe,,,9B SHOW MF
+weekday_timeframe,,,B1 MF
+weekday_timeframe,,,B2 MF
+weekday_timeframe,,,B3 NOSCH MF
+weekday_timeframe,,,B3 SCH MF
+weekday_timeframe,,,B4 NOSCH MF
+weekday_timeframe,,,B4 SCH MTTF
+weekday_timeframe,,,B4 SCH WED
+weekday_timeframe,,,BA1 MF
+weekday_timeframe,,,BA2 NOSCH MF
+weekday_timeframe,,,BA2 SCH MF
+weekday_timeframe,,,BB1 MF
+weekday_timeframe,,,BB2 MF
+weekday_timeframe,,,BZ1 NOSCH MF
+weekday_timeframe,,,BZ1 SCH MTTF
+weekday_timeframe,,,BZ1 SCH W
+weekday_timeframe,,,BZ2 NOSCH MF
+weekday_timeframe,,,BZ2 SCH MTTF
+weekday_timeframe,,,BZ2 URB EO
+weekday_timeframe,,,BZ2 WED
+weekday_timeframe,,,CH1 MF
+weekday_timeframe,,,CH2 MF
+weekday_timeframe,,,CH3 MF
+weekday_timeframe,,,CHERRY SHOW MF
+weekday_timeframe,,,G1 MF[V:0001]
+weekday_timeframe,,,G2 MF
+weekday_timeframe,,,G2 MF[V:0001]
+weekday_timeframe,,,G3 MF
+weekday_timeframe,,,G3 MF[V:0001]
+weekday_timeframe,,,G4 MF
+weekday_timeframe,,,G4 MF[V:0001]
+weekday_timeframe,,,G5 MF[V:0001]
+weekday_timeframe,,,G6 MF
+weekday_timeframe,,,G6 MF[V:0001]
+weekday_timeframe,,,GN1 MF
+weekend_timeframe,,,GN1 SA
+weekend_timeframe,,,GN1 SU
+weekday_timeframe,,,GN10 MF (GNX4)
+weekday_timeframe,,,GN11 NONUIMF (GNX5)
+weekday_timeframe,,,GN11 UIMF (GNX5)
+weekday_timeframe,,,GN12 MF (GNX2)
+weekday_timeframe,,,GN12 MF (GNX2) (Grey Show)
+weekday_timeframe,,,GN2 MF
+weekend_timeframe,,,GN2 NONUI SA
+weekend_timeframe,,,GN2 SU
+weekend_timeframe,,,GN2 UISA
+weekend_timeframe,,,GN3 NONUI SA
+weekday_timeframe,,,GN3 NOSCH
+weekday_timeframe,,,GN3 SCH WED
+weekday_timeframe,,,GN3 SCHOOL MF
+weekend_timeframe,,,GN3 SU
+weekend_timeframe,,,GN3 UISA
+weekday_timeframe,,,GN4 MF
+weekend_timeframe,,,GN4 SA
+weekend_timeframe,,,GN4 SU
+weekday_timeframe,,,GN5 MF
+weekend_timeframe,,,GN5 SA
+weekday_timeframe,,,GN6 NOSCH MF
+weekday_timeframe,,,GN6 SCH MF
+weekday_timeframe,,,GN7 NONUI
+weekday_timeframe,,,GN7 UI MTH
+weekday_timeframe,,,GN7 UIF
+weekday_timeframe,,,GN8 MF
+weekday_timeframe,,,GN9 MTTF
+weekday_timeframe,,,GN9 NO SCH URB
+weekday_timeframe,,,GN9 SHOW
+weekday_timeframe,,,GN9 URBEO
+weekday_timeframe,,,GN9 WED
+weekday_timeframe,,,GR1 MF NOSCH
+weekday_timeframe,,,GR1 MF SCH
+weekend_timeframe,,,GR1 SA
+weekend_timeframe,,,GR1 SU
+weekday_timeframe,,,GR2 MF
+weekend_timeframe,,,GR2 SA
+weekend_timeframe,,,GR2 SU
+weekday_timeframe,,,GR3 NONUI
+weekend_timeframe,,,GR3 SA
+weekend_timeframe,,,GR3 SU
+weekday_timeframe,,,GR3 UI
+weekend_timeframe,,,GR3 UISU LATE
+weekday_timeframe,,,GR4 MF
+weekend_timeframe,,,GR4 SA
+weekend_timeframe,,,GR4 SU
+weekend_timeframe,,,GR5 SA
+weekday_timeframe,,,I1 NONUI MF
+weekend_timeframe,,,I1 NONUI SA
+weekend_timeframe,,,I1 SU
+weekday_timeframe,,,I1 THURS
+weekday_timeframe,,,I1 UI F
+weekday_timeframe,,,I1 UI MTH LATE
+weekday_timeframe,,,I1 UIF LATE
+weekday_timeframe,,,I1 UIMF
+weekend_timeframe,,,I1 UISA
+weekend_timeframe,,,I1 UISU LATE
+weekday_timeframe,,,I2 NONUI MF
+weekend_timeframe,,,I2 NONUI SA
+weekend_timeframe,,,I2 SU
+weekday_timeframe,,,I2 THURS
+weekday_timeframe,,,I2 UI MTH
+weekday_timeframe,,,I2 UIF
+weekday_timeframe,,,I2 UIF LATE
+weekend_timeframe,,,I2 UISA
+weekend_timeframe,,,I2 UISU LATE
+weekday_timeframe,,,I3 UIMF
+weekend_timeframe,,,I3 UISU
+weekend_timeframe,,,I3UISA
+weekday_timeframe,,,I4 THURS
+weekday_timeframe,,,I4 UIF
+weekday_timeframe,,,I4 UIF LATE
+weekday_timeframe,,,I4 UIMF
+weekday_timeframe,,,I4 UIMTH LATE
+weekend_timeframe,,,I4 UISU
+weekend_timeframe,,,I4UISA
+weekday_timeframe,,,I5 THURS
+weekday_timeframe,,,I5 UI MTH
+weekday_timeframe,,,I5 UIF
+weekday_timeframe,,,I5 UIF LATE
+weekend_timeframe,,,I5 UISA
+weekend_timeframe,,,I5 UISU
+weekday_timeframe,,,I6 THURS
+weekday_timeframe,,,I6 UI MTH LATE
+weekday_timeframe,,,I6 UIF
+weekday_timeframe,,,I6 UIF LATE
+weekday_timeframe,,,I6 UIMF
+weekend_timeframe,,,I6 UISA
+weekend_timeframe,,,I6 UISU
+weekday_timeframe,,,I7 THURS
+weekday_timeframe,,,I7 UIF
+weekday_timeframe,,,I7 UIF LATE
+weekday_timeframe,,,I7 UIMTH
+weekend_timeframe,,,I7 UISA
+weekend_timeframe,,,I7 UISU
+weekday_timeframe,,,I8 THURS
+weekday_timeframe,,,I8 UIF
+weekday_timeframe,,,I8 UIF LATE
+weekday_timeframe,,,I8 UIMF
+weekday_timeframe,,,I8 UIMTH LATE
+weekday_timeframe,,,L1 NOSCH MF
+weekend_timeframe,,,L1 SA
+weekday_timeframe,,,L1 SCH MF
+weekend_timeframe,,,L1 SU
+weekday_timeframe,,,L2 NOSCH MF
+weekend_timeframe,,,L2 SA
+weekday_timeframe,,,L2 SCH MF
+weekend_timeframe,,,L2 SU
+weekday_timeframe,,,LM1 MF
+weekend_timeframe,,,LM1 SA
+weekend_timeframe,,,LM1 SU
+weekday_timeframe,,,LM2 MF
+weekend_timeframe,,,LM2 SA
+weekend_timeframe,,,LM2 SU
+weekday_timeframe,,,LN1 MF
+weekday_timeframe,,,LN2 MF
+weekday_timeframe,,,LN3 MF
+weekday_timeframe,,,N1 MF
+weekday_timeframe,,,N2 MF
+weekday_timeframe,,,N3 MF
+weekday_timeframe,,,O1 MF
+weekday_timeframe,,,O2 MF
+weekday_timeframe,,,O3 MF
+weekday_timeframe,,,O4 RUBY MF
+weekday_timeframe,,,ORANGE GREEN
+weekday_timeframe,,,P1 MF
+weekday_timeframe,,,P2 MF SCH
+weekday_timeframe,,,P2 NOSCH MF
+weekday_timeframe,,,R1 MF
+weekend_timeframe,,,R1 SA
+weekday_timeframe,,,R2 MF
+weekend_timeframe,,,R2 SA
+weekday_timeframe,,,R3 MF
+weekend_timeframe,,,R3 SA
+weekday_timeframe,,,R4 MF
+weekday_timeframe,,,R5 MF
+weekend_timeframe,,,RUB1 SA
+weekend_timeframe,,,RUB1 SU
+weekday_timeframe,,,RV1 MF
+weekend_timeframe,,,SV1 NONUI SA
+weekend_timeframe,,,SV1 NONUI SU
+weekday_timeframe,,,SV1 UIF
+weekday_timeframe,,,SV1 UIMTH
+weekend_timeframe,,,SV1 UISA
+weekend_timeframe,,,SV1 UISU
+weekend_timeframe,,,SV1 UISU LATE
+weekday_timeframe,,,SV2 NONUI MF
+weekday_timeframe,,,SV2 UIMF
+weekend_timeframe,,,SV2 UISA
+weekend_timeframe,,,SV2 UISU
+weekend_timeframe,,,SV2 UISU LATE
+weekday_timeframe,,,SV3 UIMF
+weekday_timeframe,,,SV4 NOSCH NOUI
+weekday_timeframe,,,SV4 NOSCH UIF
+weekday_timeframe,,,SV4 NOSCH UIMTH
+weekday_timeframe,,,SV4 SCH NONUI
+weekday_timeframe,,,SV4 SCH UIF
+weekday_timeframe,,,SV4 SCH UIMTH
+weekday_timeframe,,,SV5 UIMF
+weekday_timeframe,,,T1 NONUI MF
+weekend_timeframe,,,T1 NONUI SA
+weekend_timeframe,,,T1 SU
+weekday_timeframe,,,T1 UIF
+weekday_timeframe,,,T1 UIMTH
+weekend_timeframe,,,T1 UISA
+weekend_timeframe,,,T1 UISU LATE
+weekend_timeframe,,,T2 NONUI SA
+weekend_timeframe,,,T2 SU
+weekday_timeframe,,,T2 UIMF
+weekend_timeframe,,,T2 UISA
+weekend_timeframe,,,T2 UISU LATE
+weekday_timeframe,,,T3 NONUI MF
+weekday_timeframe,,,T3 UIMF
+weekday_timeframe,,,T4 UIMF
+weekday_timeframe,,,T5 UIMF
+weekday_timeframe,,,Y1 MF
+weekend_timeframe,,,Y1 NONUI SA
+weekend_timeframe,,,Y1 SU
+weekend_timeframe,,,Y1 UI SA
+weekday_timeframe,,,Y2 NONUI MF
+weekend_timeframe,,,Y2 NONUI SA
+weekend_timeframe,,,Y2 SU
+weekday_timeframe,,,Y2 UI MF
+weekend_timeframe,,,Y2 UI SA
+weekend_timeframe,,,Y2 UISU LATE
+weekday_timeframe,,,Y3 MF
+weekend_timeframe,,,Y3 SA
+weekend_timeframe,,,Y3 SU
+weekday_timeframe,,,Y4 MF
+weekend_timeframe,,,Y4 SA
+weekend_timeframe,,,Y4 SU
+weekday_timeframe,,,Y5 NONUI MF
+weekend_timeframe,,,Y5 NONUI SU
+weekend_timeframe,,,Y5 SA
+weekday_timeframe,,,Y5 UIMF
+weekend_timeframe,,,Y5 UISU LATE
+weekday_timeframe,,,Y6 UIMF
+weekday_timeframe,,,Y7 UIMF
+weekday_timeframe,,,Y8 UIMF

@@ -1,0 +1,10 @@
+fare_product_id,fare_product_name,fare_media_id,amount,currency
+fare_free_product,iStop,no_payment_media,0.00,USD
+annual_pass_product,Annual Pass (Printed),printed_card_media,60.00,USD
+annual_pass_product,Annual Pass (Token Transit),token_transit_media,60.00,USD
+monthly_pass_product,Monthly Pass (Printed),printed_card_media,20.00,USD
+monthly_pass_product,Monthly Pass (Token Transit),token_transit_media,20.00,USD
+all_day_pass_product,All Day Pass (Cash),printed_card_media,2.00,USD
+all_day_pass_product,All Day Pass (Token Transit),token_transit_media,2.00,USD
+single_ride_product,Single Ride (Cash),cash_media,1.00,USD
+single_ride_product,Single Ride (Token Transit),token_transit_media,1.00,USD

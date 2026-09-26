@@ -1,0 +1,91 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color,route_sort_order
+YELLOW,CUMTD,1,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/ac3fc3d037af468f8b24d061de7bea93/,fcee1f,000000,2000
+RED,CUMTD,2,Red,,3,https://mtd.org/maps-and-schedules/to-schedule/dac5f56a9c544a6aa4ab389d2eee31a3/,ed1c24,000000,3000
+LAVENDER,CUMTD,3,Lavender,,3,https://mtd.org/maps-and-schedules/to-schedule/8776504c15564f3aa6340c45e1d35304/,a78bc0,000000,4000
+BLUE,CUMTD,4,Blue,,3,https://mtd.org/maps-and-schedules/to-schedule/a9192b0e47784e9b97e8c9fdaaf56841/,355caa,ffffff,5000
+GREEN,CUMTD,5,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/294fb25d538f466db90ea34317dceea1/,008063,ffffff,6000
+ORANGE,CUMTD,6,Orange,,3,https://mtd.org/maps-and-schedules/to-schedule/45eb37e3c484469f89c98eb9ec9a43ec/,f99f2a,000000,7000
+GREY,CUMTD,7,Grey,,3,https://mtd.org/maps-and-schedules/to-schedule/46a84a6bfd7345a498bfc8d183955f23/,808285,000000,8000
+BRONZE,CUMTD,8,Bronze,,3,https://mtd.org/maps-and-schedules/to-schedule/dd2fb42da8a14b019c55e336ddbafc9b/,9e8966,000000,9000
+BROWN,CUMTD,9,Brown,,3,https://mtd.org/maps-and-schedules/to-schedule/36c6040385b64bf9ac37ab7acda49b97/,825622,ffffff,10000
+GOLD,CUMTD,10,Gold,,3,https://mtd.org/maps-and-schedules/to-schedule/c2a177c6a139461b834e3169745952c8/,c7994a,000000,11000
+RUBY,CUMTD,11,Ruby,,3,https://mtd.org/maps-and-schedules/to-schedule/5c69fbd8e0044b13bb533b59d14b2730/,eb008b,000000,12000
+TEAL,CUMTD,12,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/1cf2244ccdfd4e7f8a5589b5a60b2767/,006991,ffffff,13000
+SILVER,CUMTD,13,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/5c18a57009c04ff891a2c13442593cf7/,cccccc,000000,14000
+NAVY,CUMTD,14,Navy,,3,https://mtd.org/maps-and-schedules/to-schedule/df77bc51ebd3446abb85001dc38bd89f/,2b3088,ffffff,15000
+PINK,CUMTD,16,Pink,,3,https://mtd.org/maps-and-schedules/to-schedule/847014c32d804782b83b49f81f8bb2e6/,ffbfff,000000,17000
+CHERRY,CUMTD,17,Cherry,,3,https://mtd.org/maps-and-schedules/to-schedule/4d75462466674d3bb96a1881d9152daf/,cc0033,ffffff,18000
+RAVEN,CUMTD,21,Raven,,3,https://mtd.org/maps-and-schedules/to-schedule/3abfed952ccb4d2589a82c0ffb792b27/,000000,ffffff,22000
+ILLINI,CUMTD,22,Illini,,3,https://mtd.org/maps-and-schedules/to-schedule/9b6203fbd56f4d2ab532e1a214a1b7c8/,5a1d5a,ffffff,23000
+LINK,CUMTD,24,Link,,3,https://mtd.org/maps-and-schedules/to-schedule/9e4839a6838c40e4bf3509cca0eabc7a/,00ffff,000000,25000
+GREEN EVENING,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/d86bc22fadbd4199a35e0fc5a06794bc/,008063,ffffff,6500
+GREENHOPPER,CUMTD,5,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/294fb25d538f466db90ea34317dceea1/,008063,ffffff,6000
+GREEN EVENING SATURDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/83432d5db1a542b6bebfcd663b4b53f2/,008063,ffffff,7500
+GREENHOPPER EVENING,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/d86bc22fadbd4199a35e0fc5a06794bc/,008063,ffffff,6500
+ORANGEHOPPER,CUMTD,6,Orange,,3,https://mtd.org/maps-and-schedules/to-schedule/45eb37e3c484469f89c98eb9ec9a43ec/,f99f2a,000000,7000
+GREY EVENING,CUMTD,70,Grey,,3,https://mtd.org/maps-and-schedules/to-schedule/8cac1490a85d485c83267e58c660cd7b/,808285,000000,8500
+GREY EVENING SATURDAY,CUMTD,70,Grey,,3,https://mtd.org/maps-and-schedules/to-schedule/e2e5b75e71f94ee2b6e5f6570206c9b1/,808285,000000,9500
+YELLOW EVENING,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/68825a4003994a6698288ed1f4ceb381/,fcee1f,000000,2500
+YELLOW LATE NIGHT,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/6c9ea5b5b47048b6b04387b30d44090e/,fcee1f,000000,2510
+YELLOW SATURDAY,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/26e0cf4228e740f8af714ff786d6d183/,fcee1f,000000,3000
+YELLOWHOPPER,CUMTD,1,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/ac3fc3d037af468f8b24d061de7bea93/,fcee1f,000000,2000
+YELLOW SUNDAY,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/3f04d3f771144df6910001efa76b4575/,fcee1f,000000,4000
+YELLOW EVENING SATURDAY,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/26e0cf4228e740f8af714ff786d6d183/,fcee1f,000000,3000
+YELLOW LATE NIGHT SATURDAY,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/623b5cb992d74c1eaff01dd456cfb469/,fcee1f,000000,3510
+YELLOW LATE NIGHT SUNDAY,CUMTD,100,Yellow,,3,https://mtd.org/maps-and-schedules/to-schedule/876d2e491bdf436298f90677f80dcf0a/,fcee1f,000000,4500
+RUBY EVENING,CUMTD,110,Ruby,,3,https://mtd.org/maps-and-schedules/to-schedule/d86de12426cb4bd89c205b2e160a5651/,eb008b,000000,12500
+RUBY SATURDAY,CUMTD,110,Ruby,,3,https://mtd.org/maps-and-schedules/to-schedule/1ac854f3783b453c92307cd0ff6effbb/,eb008b,000000,13000
+RUBY SUNDAY,CUMTD,110,Ruby,,3,https://mtd.org/maps-and-schedules/to-schedule/178f799322dd4b9982ec00cfb5a33fa0/,eb008b,000000,14000
+RUBY EVENING SATURDAY,CUMTD,110,Ruby,,3,https://mtd.org/maps-and-schedules/to-schedule/24af2a47daf1482984f7fae5b5769274/,eb008b,000000,13500
+GOLDHOPPER,CUMTD,10,Gold,,3,https://mtd.org/maps-and-schedules/to-schedule/c2a177c6a139461b834e3169745952c8/,c7994a,000000,11000
+TEAL EVENING,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/b341fa0cd73344a2a99331944e9355b9/,006991,ffffff,13500
+TEAL LATE NIGHT,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/b341fa0cd73344a2a99331944e9355b9/,006991,ffffff,13500
+TEAL SATURDAY,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/00b03ca2bfe4461cb0bc9784e1b0938a/,006991,ffffff,14000
+TEAL SUNDAY,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/561875bc4cd84124b67031474c033949/,006991,ffffff,15000
+TEAL LATE NIGHT SATURDAY,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/5d11a774464f4b34bd356b2b544d21a5/,006991,ffffff,14500
+TEAL LATE NIGHT SUNDAY,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/e2ae5908eef6413ebfbe902e7762f012/,006991,ffffff,15500
+TEAL EVENING SATURDAY,CUMTD,120,Teal,,3,https://mtd.org/maps-and-schedules/to-schedule/5d11a774464f4b34bd356b2b544d21a5/,006991,ffffff,14500
+SILVER EVENING,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/60bda5b3dd694f8c989172d9dac9fb68/,cccccc,000000,14500
+SILVER LATE NIGHT,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/60bda5b3dd694f8c989172d9dac9fb68/,cccccc,000000,14500
+SILVER EVENING SUNDAY,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/7b110b4960304041a21ed06285cc7d21/,cccccc,000000,16500
+SILVER SATURDAY,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/9feacb4a87834e96997f7aa433bf9180/,cccccc,000000,15000
+SILVER LIMITED SATURDAY,CUMTD,130,Silver Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/0d1ba88ddeec4e55b73fa48b66d2fb99/,cccccc,000000,15000
+SILVER LIMITED EVENING,CUMTD,130,Silver Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/238b198d3d0f46c58c089cb9d5628c34/,cccccc,000000,14500
+SILVER LIMITED SUNDAY,CUMTD,130,Silver Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/8bb5c83467a84edabe8760d29e011248/,cccccc,000000,16000
+SILVER SUNDAY,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/74feb78dba6249cc8b6f782817003a3b/,cccccc,000000,16000
+SILVER EVENING SATURDAY,CUMTD,130,Silver,,3,https://mtd.org/maps-and-schedules/to-schedule/6bd4963fcfef41a7b4447981d6bca587/,cccccc,000000,15500
+SILVER LIMITED EVENING SATURDAY,CUMTD,130,Silver Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/9b688cc3025b48c7874cc2325b09fa7b/,cccccc,000000,15500
+LIME EVENING,CUMTD,180,Lime,,3,https://mtd.org/maps-and-schedules/to-schedule/109880accddb455f8d44761fd3e622f5/,b2d235,000000,19500
+LIME SATURDAY,CUMTD,180,Lime,,3,https://mtd.org/maps-and-schedules/to-schedule/fba86a68fdd84744919bdb9db7297bd4/,b2d235,000000,20000
+LIME SUNDAY,CUMTD,180,Lime,,3,https://mtd.org/maps-and-schedules/to-schedule/41c37f2d98114596812b1272db779e58/,b2d235,000000,21000
+LIME EVENING SATURDAY,CUMTD,180,Lime,,3,https://mtd.org/maps-and-schedules/to-schedule/6ab79ef087d545ee86c49af7ec0da47a/,b2d235,000000,20500
+RED SATURDAY,CUMTD,20,Red,,3,https://mtd.org/maps-and-schedules/to-schedule/93db236e0d0042d7be2aca0ecaedf813/,ed1c24,000000,4000
+ILLINI EVENING,CUMTD,220,Illini,,3,https://mtd.org/maps-and-schedules/to-schedule/9aa82a614ba04b4eac71f5475a5df07c/,5a1d5a,ffffff,23500
+ILLINI LIMITED,CUMTD,22,Illini Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/f7df2eca23dd43069aefdbc7bec934c7/,5a1d5a,ffffff,23000
+ILLINI LIMITED EVENING,CUMTD,220,Illini Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/396462e5b9fa44cbb5b15b1ef50be155/,5a1d5a,ffffff,23500
+ILLINI LIMITED SATURDAY,CUMTD,220,Illini Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/d5a1a2df7dce48e1b9d525f831e4d213/,5a1d5a,ffffff,24000
+ILLINI LIMITED SUNDAY,CUMTD,220,Illini Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/787f418dd69d427caf854c1679e240d7/,5a1d5a,ffffff,25000
+ILLINI EVENING SATURDAY,CUMTD,220,Illini,,3,https://mtd.org/maps-and-schedules/to-schedule/5d165d43f0df4a1fbae72f4609239b7b/,5a1d5a,ffffff,24500
+ILLINI EVENING SUNDAY,CUMTD,220,Illini,,3,https://mtd.org/maps-and-schedules/to-schedule/42b6e85774124b12afaccb7d02c34a54/,5a1d5a,ffffff,25500
+ILLINI LIMITED EVENING SATURDAY,CUMTD,220,Illini Limited,,3,https://mtd.org/maps-and-schedules/to-schedule/9b0d4cfe9db0400eb0642cd48c568427/,5a1d5a,ffffff,24500
+LAVENDER SATURDAY,CUMTD,30,Lavender,,3,https://mtd.org/maps-and-schedules/to-schedule/ab1142fa1f5847d0b68e3bacbea5a4ad/,a78bc0,000000,5000
+LAVENDER SUNDAY,CUMTD,30,Lavender,,3,https://mtd.org/maps-and-schedules/to-schedule/221d3b55042247fd902ee53aa492a345/,a78bc0,000000,6000
+GREEN SATURDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/8fe19299db514b3eb89634671e3427cb/,008063,ffffff,7000
+GREEN LATE NIGHT,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/d3d8fd7fa754412fb78f365181c0328d/,008063,ffffff,6510
+GREENHOPPER EVENING SATURDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/83432d5db1a542b6bebfcd663b4b53f2/,008063,ffffff,7500
+GREEN SUNDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/6384a156ccc849739a4398f73450898d/,008063,ffffff,8000
+GREEN LATE NIGHT SATURDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/accac4eddba64714b5c7964f53fa2a84/,008063,ffffff,7510
+GREEN LATE NIGHT SUNDAY,CUMTD,50,Green,,3,https://mtd.org/maps-and-schedules/to-schedule/0b63ef7a4efd4382a51d5dc8123419e0/,008063,ffffff,8500
+GREEN EXPRESS,CUMTD,5,Green Express,,3,https://mtd.org/maps-and-schedules/to-schedule/48117801b0e84213ad1000a6dba714c6/,008063,ffffff,6000
+GREY SUNDAY,CUMTD,70,Grey,,3,https://mtd.org/maps-and-schedules/to-schedule/ece1d2a390534da4a7b8bdec02b84391/,808285,000000,10000
+GREY SATURDAY,CUMTD,70,Grey,,3,https://mtd.org/maps-and-schedules/to-schedule/36b08146a109449fa404909b4d4625f4/,808285,000000,9000
+YELLOW ALT,CUMTD,1,Yellow Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/ac3fc3d037af468f8b24d061de7bea93/,fcee1f,000000,2000
+ORANGE ALT,CUMTD,6,Orange Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/45eb37e3c484469f89c98eb9ec9a43ec/,f99f2a,000000,7000
+BROWN ALT,CUMTD,9,Brown Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/36c6040385b64bf9ac37ab7acda49b97/,825622,ffffff,10000
+LAVENDER ALT,CUMTD,3,Lavender Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/8776504c15564f3aa6340c45e1d35304/,a78bc0,000000,4000
+GREEN ALT,CUMTD,5,Green Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/294fb25d538f466db90ea34317dceea1/,008063,ffffff,6000
+GREY ALT,CUMTD,7,Grey Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/46a84a6bfd7345a498bfc8d183955f23/,808285,000000,8000
+GOLD ALT,CUMTD,10,Gold Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/c2a177c6a139461b834e3169745952c8/,c7994a,000000,11000
+BRONZE ALT,CUMTD,8,Bronze Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/dd2fb42da8a14b019c55e336ddbafc9b/,9e8966,000000,9000
+CHERRY ALT,CUMTD,17,Cherry Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/4d75462466674d3bb96a1881d9152daf/,cc0033,ffffff,18000
+PINK ALT,CUMTD,16,Pink Alternate,,3,https://mtd.org/maps-and-schedules/to-schedule/847014c32d804782b83b49f81f8bb2e6/,ffbfff,000000,17000

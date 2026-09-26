@@ -1,0 +1,5 @@
+fare_media_id,fare_media_name,fare_media_type
+no_payment_media,Fare Free,0
+cash_media,Cash Payment,0
+printed_card_media,Printed Pass/Card,2
+token_transit_media,Token Transit App,4

@@ -1,0 +1,3 @@
+area_id,area_name
+istop_area,i-Stop (Fare Free)
+full_fare_area,Full Fare
