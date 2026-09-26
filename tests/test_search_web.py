@@ -85,3 +85,15 @@ def test_web_endpoints(tmp_path):
     assert client.get("/api/stops/IT/arrivals", params={"model": "bogus"}).status_code == 400
     h = client.get("/api/health").json()
     assert h["observations"] == 0 and h["rest_search_enabled"] is False
+
+
+def test_accuracy_endpoint(tmp_path):
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    c.close()
+    client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
+                                   rt_cache=StubRT()))
+    body = client.get("/api/accuracy").json()
+    assert body["observations"] == 0 and len(body["by_horizon"]) == 6
+    assert client.get("/api/accuracy", params={"model": "x"}).status_code == 400

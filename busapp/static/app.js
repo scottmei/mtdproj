@@ -110,15 +110,23 @@ async function loadBoard() {
   try {
     const url = `/api/stops/${encodeURIComponent(state.stopId)}/arrivals?model=${encodeURIComponent(state.model || "")}`;
     const data = await getJSON(url);
+    if (data.stop.id !== state.stopId?.split(":")[0]) return;  // user switched stops mid-request
     state.clockOffsetMs = data.now_ts * 1000 - Date.now();
     state.data = data;
     renderBoard();
   } catch (err) {
     console.error(err);
+    if (err.message.startsWith("404")) {
+      $("board").hidden = true;
+      $("empty").hidden = false;
+      $("empty").replaceChildren(el("h2", {}, `No stop called “${state.stopId}”`),
+        el("p", {}, "Try searching by name or stop code above."));
+      state.stopId = null;
+      return;
+    }
     $("stop-meta").textContent = `Couldn't load arrivals: ${err.message}`;
-  } finally {
-    state.refreshTimer = setTimeout(loadBoard, REFRESH_MS);
   }
+  state.refreshTimer = setTimeout(loadBoard, REFRESH_MS);
 }
 
 function renderBoard() {
@@ -179,6 +187,58 @@ function tickCountdowns() {
 }
 setInterval(tickCountdowns, 1000);
 
+// ---------- accuracy panel ----------
+const fmtErr = (s) => (s == null ? "—" : `${(s / 60).toFixed(1)} min`);
+const fmtBias = (s) => (s == null ? "" : `bias ${s >= 0 ? "+" : "−"}${(Math.abs(s) / 60).toFixed(1)}`);
+
+async function loadAccuracy() {
+  try {
+    const acc = await getJSON(`/api/accuracy?model=${encodeURIComponent(state.model || "")}`);
+    renderAccuracy(acc);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderAccuracy(acc) {
+  const sec = $("accuracy");
+  const fair = acc.observations_with_history > 0;
+  const statCell = (st, best) => el("td", { class: "num" },
+    el("span", { class: "time", style: best ? "" : "font-weight:500" }, fmtErr(st.mae_s)),
+    el("span", { class: "model-note" }, st.n ? `${fmtBias(st.bias_s)} · p90 ${fmtErr(st.p90_s)}` : ""));
+
+  const rows = acc.by_horizon.map((h) => {
+    const set = fair ? h : { ...h.all, ours: { n: 0, mae_s: null } };
+    const maes = [set.schedule.mae_s, set.mtd.mae_s, set.ours.mae_s].filter((x) => x != null);
+    const best = maes.length ? Math.min(...maes) : null;
+    return el("tr", {},
+      el("td", {}, `~${h.horizon_min} min before`),
+      el("td", { class: "num" }, set.mtd.n.toLocaleString()),
+      statCell(set.schedule, set.schedule.mae_s === best),
+      statCell(set.mtd, set.mtd.mae_s === best),
+      fair ? statCell(set.ours, set.ours.mae_s === best)
+           : el("td", { class: "num muted" }, "needs a prior day"));
+  });
+
+  sec.replaceChildren(
+    el("h2", {}, "How accurate is each estimate?"),
+    el("p", { class: "muted" },
+      `Average error against ${acc.observations.toLocaleString()} observed departures (last ${acc.days} days). ` +
+      "MTD is scored on the estimate it showed about H minutes before the bus actually came. " +
+      (fair
+        ? "Our model only uses data from days before the one it predicts; all three columns use the same departures."
+        : "Our model is scored once there's at least one full prior day of history.")),
+    el("div", { class: "table-wrap" },
+      el("table", {},
+        el("thead", {}, el("tr", {},
+          el("th", {}, "When you look"), el("th", { class: "num" }, "Departures"),
+          el("th", { class: "num" }, "Schedule"), el("th", { class: "num" }, "MTD live"),
+          el("th", { class: "num" }, `Our model (${acc.model})`))),
+        el("tbody", {}, ...rows))));
+  sec.hidden = false;
+}
+setInterval(loadAccuracy, 10 * 60_000);
+
 // ---------- models, health, routing ----------
 async function loadModels() {
   const { default: def, models } = await getJSON("/api/models");
@@ -186,7 +246,7 @@ async function loadModels() {
   $("model").replaceChildren(...models.map((m) => el("option", { value: m }, m)));
   $("model").value = def;
 }
-$("model").addEventListener("change", (e) => { state.model = e.target.value; loadBoard(); });
+$("model").addEventListener("change", (e) => { state.model = e.target.value; loadBoard(); loadAccuracy(); });
 $("refresh").addEventListener("click", loadBoard);
 
 async function loadHealth() {
@@ -216,5 +276,5 @@ window.addEventListener("hashchange", onRoute);
   loadHealth();
   setInterval(loadHealth, 60_000);
   onRoute();
-  if (window.loadAccuracy) window.loadAccuracy();
+  loadAccuracy();
 })();

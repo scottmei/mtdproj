@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, db
+from .accuracy import backtest
 from .arrivals import RealtimeCache, arrivals_for_stop
 from .mtd_rest import MtdRestClient
 from .predictors import DEFAULT_PREDICTOR, PREDICTORS, get_predictor
@@ -41,6 +42,22 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
             res = arrivals_for_stop(conn, stop_id.split(":")[0], predictors[model], rt_cache)
         if res is None:
             raise HTTPException(404, f"Unknown stop {stop_id!r}")
+        return res
+
+    accuracy_cache: dict = {}
+
+    @app.get("/api/accuracy")
+    def api_accuracy(model: str = DEFAULT_PREDICTOR, days: int = Query(7, ge=1, le=60)):
+        """Backtest of schedule vs MTD live vs our model (cached for 10 minutes)."""
+        if model not in predictors:
+            raise HTTPException(400, f"Unknown model {model!r}")
+        key = (model, days)
+        hit = accuracy_cache.get(key)
+        if hit and time.time() - hit[0] < 600:
+            return hit[1]
+        with lock:
+            res = backtest(conn, predictors[model], days=days)
+        accuracy_cache[key] = (time.time(), res)
         return res
 
     @app.get("/api/models")
