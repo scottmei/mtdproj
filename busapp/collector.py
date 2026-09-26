@@ -89,6 +89,10 @@ class Collector:
         self.prev: FeedSnapshot | None = None
         self.prev_poll_ts: int | None = None
         self.seen_horizons: set = set()
+        # (trip_id, start_date) -> stop_sequences recorded as departed this run; if MTD
+        # re-lists one of those stops, the bus hadn't really left and we retract it
+        self.observed: dict[tuple[str, str], set[int]] = {}
+        self.last_retracted = 0
         self.trip_info = {r["trip_id"]: (r["route_id"], r["direction_id"])
                           for r in conn.execute("SELECT trip_id, route_id, direction_id FROM trips")}
         if not self.trip_info:
@@ -121,6 +125,7 @@ class Collector:
         """Ingest one feed snapshot. Returns the number of new observations written."""
         n_new = 0
         with self.conn:
+            self.last_retracted = self._retract_relisted(cur)
             if self.prev is not None:
                 gap = poll_ts - self.prev_poll_ts
                 rows = self._observation_rows(infer_departures(self.prev, cur, poll_ts), gap)
@@ -128,6 +133,8 @@ class Collector:
                 self.conn.executemany(
                     "INSERT OR IGNORE INTO observed_departures VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
                 n_new = self.conn.total_changes - before
+                for r in rows:
+                    self.observed.setdefault((r[0], r[1]), set()).add(r[2])
             snaps = horizon_snapshots(cur, poll_ts, self.seen_horizons)
             self.conn.executemany(
                 "INSERT OR IGNORE INTO mtd_predictions VALUES (?,?,?,?,?,?)",
@@ -139,9 +146,26 @@ class Collector:
         self._prune_seen(cur)
         return n_new
 
+    def _retract_relisted(self, cur: FeedSnapshot) -> int:
+        """Delete observations for stops that MTD has put back into a trip's remaining stops."""
+        doomed = []
+        for key, seqs in self.observed.items():
+            trip = cur.trips.get(key)
+            if trip is None:
+                continue
+            back = seqs & trip.stops.keys()
+            if back:
+                seqs -= back
+                doomed.extend((key[0], key[1], seq) for seq in back)
+        self.conn.executemany(
+            "DELETE FROM observed_departures WHERE trip_id=? AND service_date=? AND stop_sequence=?",
+            doomed)
+        return len(doomed)
+
     def _prune_seen(self, cur: FeedSnapshot) -> None:
         live = {(t.trip_id, t.start_date) for t in cur.trips.values()}
         self.seen_horizons = {k for k in self.seen_horizons if (k[0], k[1]) in live}
+        self.observed = {k: v for k, v in self.observed.items() if k in live}
 
     def record_error(self, poll_ts: int, err: Exception) -> None:
         with self.conn:
@@ -158,7 +182,8 @@ class Collector:
                 try:
                     snap = fetch_trip_updates(client)
                     n = self.process(snap, poll_ts)
-                    log.info("poll ok: %d trips, %d new observations", len(snap.trips), n)
+                    log.info("poll ok: %d trips, %d new observations%s", len(snap.trips), n,
+                             f", {self.last_retracted} retracted" if self.last_retracted else "")
                 except Exception as e:  # keep collecting through network/feed hiccups
                     log.warning("poll failed: %s", e)
                     self.record_error(poll_ts, e)

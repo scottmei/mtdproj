@@ -86,3 +86,19 @@ def test_collector_drops_absurd_delays(conn):
     base = gtfs_to_epoch(SD, 18 * 3600)
     c.process(snap(trip("T1", [(1, "A", base + 7200), (2, "B", base + 7300)])), base + 7000)
     assert c.process(snap(trip("T1", [(2, "B", base + 7300)])), base + 7220) == 0
+
+
+def test_relisted_stops_are_retracted_then_rerecorded(conn):
+    seed_static(conn)
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 18 * 3600)
+    full = [(1, "A", base + 60), (2, "B", base + 360), (3, "C", base + 660)]
+    c.process(snap(trip("T1", full)), base)
+    c.process(snap(trip("T1", full[2:])), base + 40)          # feed glitch: stops 1-2 "gone"
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 2
+    c.process(snap(trip("T1", full[1:])), base + 80)          # stop 2 comes back
+    assert c.last_retracted == 1
+    assert [r[0] for r in conn.execute("SELECT stop_sequence FROM observed_departures")] == [1]
+    c.process(snap(trip("T1", full[2:])), base + 400)         # stop 2 really served now
+    row = conn.execute("SELECT observed_ts FROM observed_departures WHERE stop_sequence=2").fetchone()
+    assert row[0] == base + 360
