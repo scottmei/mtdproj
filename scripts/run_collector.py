@@ -20,6 +20,7 @@ def main() -> None:
         handlers=[logging.StreamHandler(),
                   logging.FileHandler(config.DB_PATH.parent / "collector.log", encoding="utf-8")],
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per poll is enough
     conn = db.connect()
     db.init_schema(conn)
     Collector(conn).run_forever()
