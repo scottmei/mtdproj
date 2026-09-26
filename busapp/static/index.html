@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CU Bus Predictor</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🚌</span>
+      <div>
+        <h1>CU Bus Predictor</h1>
+        <p class="tagline">Schedule vs. MTD live vs. what history says</p>
+      </div>
+    </div>
+    <div class="search" role="search">
+      <input id="q" type="search" placeholder="Search a stop — e.g. Illinois Terminal, Wright & Healey, 3121"
+             autocomplete="off" aria-label="Search for a stop" aria-controls="suggest">
+      <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+    </div>
+  </header>
+
+  <main>
+    <section id="empty" class="empty">
+      <h2>Pick a stop to see upcoming buses</h2>
+      <p>Each arrival shows three times: the <b>schedule</b>, <b>MTD's live estimate</b>, and
+        <b>our prediction</b> — the schedule plus the average delay this route has historically had
+        at this time of day.</p>
+    </section>
+
+    <section id="board" hidden>
+      <div class="board-head">
+        <div>
+          <h2 id="stop-name"></h2>
+          <p id="stop-meta" class="muted"></p>
+        </div>
+        <div class="controls">
+          <label>Model <select id="model"></select></label>
+          <button id="refresh" type="button" title="Refresh now">↻</button>
+        </div>
+      </div>
+      <div id="rt-warning" class="warning" hidden>MTD's live feed is unavailable — showing schedule and our predictions only.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Destination</th>
+              <th class="num">Scheduled</th>
+              <th class="num">MTD live</th>
+              <th class="num">Our prediction</th>
+              <th class="num">Arrives</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p id="no-rows" class="muted" hidden>No more buses scheduled here in the next 90 minutes.</p>
+      <p class="legend muted">
+        <span class="dot live"></span> tracked by MTD ·
+        <span class="late">+late</span> / <span class="early">−early</span> vs schedule ·
+        "Arrives" uses MTD's live time when the bus is tracked, otherwise our prediction.
+      </p>
+    </section>
+
+    <section id="accuracy" class="accuracy" hidden></section>
+  </main>
+
+  <footer id="health" class="muted"></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
