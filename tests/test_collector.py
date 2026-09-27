@@ -99,6 +99,30 @@ def test_relisted_stops_are_retracted_then_rerecorded(conn):
     c.process(snap(trip("T1", full[1:])), base + 80)          # stop 2 comes back
     assert c.last_retracted == 1
     assert [r[0] for r in conn.execute("SELECT stop_sequence FROM observed_departures")] == [1]
-    c.process(snap(trip("T1", full[2:])), base + 400)         # stop 2 really served now
+    c.process(snap(trip("T1", full[2:])), base + 100)         # stop 2 really served now
     row = conn.execute("SELECT observed_ts FROM observed_departures WHERE stop_sequence=2").fetchone()
-    assert row[0] == base + 360
+    assert row[0] == base + 100  # min(last prediction, poll time)
+
+
+def test_long_gap_reseeds_instead_of_guessing(conn):
+    seed_static(conn)
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 18 * 3600)
+    full = [(1, "A", base + 60), (2, "B", base + 360), (3, "C", base + 660)]
+    c.process(snap(trip("T1", full)), base)
+    # laptop slept 10 minutes: stops 1-2 vanished at unknown times -> nothing recorded
+    assert c.process(snap(trip("T1", full[2:])), base + 600) == 0
+    assert c.last_reseed_gap == 600
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 0
+    # normal polling resumes from the new baseline: stop 3 served 20 s later is recorded
+    assert c.process(snap(trip("T1", [(4, "D", base + 900)])), base + 620) == 1
+    assert c.last_reseed_gap is None
+
+
+def test_gap_at_threshold_still_infers(conn):
+    seed_static(conn)
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 18 * 3600)
+    full = [(1, "A", base + 60), (2, "B", base + 360)]
+    c.process(snap(trip("T1", full)), base)
+    assert c.process(snap(trip("T1", full[1:])), base + 90) == 1

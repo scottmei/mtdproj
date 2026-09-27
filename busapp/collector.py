@@ -94,6 +94,7 @@ class Collector:
         # re-lists one of those stops, the bus hadn't really left and we retract it
         self.observed: dict[tuple[str, str], set[int]] = {}
         self.last_retracted = 0
+        self.last_reseed_gap: int | None = None
         self.trip_info = {r["trip_id"]: (r["route_id"], r["direction_id"])
                           for r in conn.execute("SELECT trip_id, route_id, direction_id FROM trips")}
         if not self.trip_info:
@@ -127,8 +128,11 @@ class Collector:
         n_new = 0
         with self.conn:
             self.last_retracted = self._retract_relisted(cur)
-            if self.prev is not None:
-                gap = poll_ts - self.prev_poll_ts
+            gap = poll_ts - self.prev_poll_ts if self.prev is not None else None
+            self.last_reseed_gap = gap if gap is not None and gap > config.MAX_POLL_GAP_S else None
+            # After a long gap (sleep, outage, repeated fetch errors) we can't tell when stops
+            # dropped out, so this snapshot only re-seeds state instead of producing departures.
+            if gap is not None and self.last_reseed_gap is None:
                 rows = self._observation_rows(infer_departures(self.prev, cur, poll_ts), gap)
                 before = self.conn.total_changes
                 self.conn.executemany(
@@ -184,6 +188,9 @@ class Collector:
                     try:
                         snap = fetch_trip_updates(client)
                         n = self.process(snap, poll_ts)
+                        if self.last_reseed_gap:
+                            log.warning("resumed after %ds without a successful poll; re-seeded state",
+                                        self.last_reseed_gap)
                         log.info("poll ok: %d trips, %d new observations%s", len(snap.trips), n,
                                  f", {self.last_retracted} retracted" if self.last_retracted else "")
                     except Exception as e:  # keep collecting through network/feed hiccups
