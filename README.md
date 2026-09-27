@@ -86,7 +86,7 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 50 tests
+python -m pytest                    # 54 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks
@@ -122,11 +122,32 @@ The levels, from most to least specific, are:
 
 1. route + direction + stop + hour + day type
 2. route + direction + hour + day type
-3. route + hour
-4. route
-5. no data (predict the schedule)
+3. line + direction + stop + hour
+4. route + hour
+5. line + direction + hour
+6. route
+7. line
+8. no data (predict the schedule)
 
 The first level with at least 5 samples wins, and the UI shows which level and `n` were used.
+
+A **line** is the route's long name ("Green"). MTD's `route_id` encodes the service pattern: `GREEN`,
+`GREEN EVENING`, `GREEN SATURDAY` and `GREEN SUNDAY` are all different IDs. So route-level history
+never carries over between day types; after three days of collection, no scored departure had any.
+The line levels fixed that: 0 → 30,612 of 44,657 departures scorable. With one day of history, the
+first data we could score (weekend of 2026-09-26/27) gave:
+
+| Horizon | Schedule | MTD live | Ours |
+|---|---|---|---|
+| 2 min | 243 s | 96 s | 214 s |
+| 10 min | 246 s | 142 s | 217 s |
+| 30 min | 247 s | 189 s | 217 s |
+
+Average error in seconds, on the same departures in every column. The most specific level that fired,
+line + direction + stop + hour, averaged 134 s. The coarse line levels averaged about 224 s, so
+specificity pays off as history grows. The level order is a parameter (`AverageDelayPredictor(levels=...)`).
+Four candidate orders scored identically on this data, because route-level history didn't exist yet;
+re-run the comparison once weekday data repeats.
 
 The backtest pivots MTD's horizon snapshots onto the observations:
 

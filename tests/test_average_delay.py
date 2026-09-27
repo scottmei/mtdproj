@@ -73,3 +73,42 @@ def test_registry(conn):
         raise AssertionError
     except ValueError:
         pass
+
+
+def seed_routes(conn):
+    conn.executemany("INSERT INTO routes VALUES (?,?,?,?,?)", [
+        ("TEAL", "12", "Teal", "006991", "ffffff"),
+        ("TEAL SATURDAY", "120", "Teal", "006991", "ffffff"),   # same line, different pattern
+        ("TEAL ALT", "12", "Teal Alternate", "006991", "ffffff"),  # different line
+    ])
+    conn.commit()
+
+
+def test_line_level_carries_history_across_service_patterns(conn):
+    seed_routes(conn)
+    add_obs(conn, 5, 240, route="TEAL", secs=H18)  # weekday TEAL history only
+    p = predict(conn, req(route="TEAL SATURDAY", date=SAT))
+    assert (p.level, p.n_samples, p.delay_s) == ("line+dir+stop+hour", 5, 240)
+
+
+def test_line_levels_fall_back_to_line_dir_hour_then_line(conn):
+    seed_routes(conn)
+    add_obs(conn, 5, 100, route="TEAL", stop="B:1")        # other stop, same hour
+    assert predict(conn, req(route="TEAL SATURDAY", date=SAT)).level == "line+dir+hour"
+    conn.execute("DELETE FROM observed_departures")
+    add_obs(conn, 5, 100, route="TEAL", secs=8 * 3600)     # other hour
+    assert predict(conn, req(route="TEAL SATURDAY", date=SAT)).level == "line"
+
+
+def test_different_line_does_not_share_history(conn):
+    seed_routes(conn)
+    add_obs(conn, 5, 240, route="TEAL")
+    assert predict(conn, req(route="TEAL ALT")).level == "no data"
+
+
+def test_route_level_still_preferred_when_available(conn):
+    seed_routes(conn)
+    add_obs(conn, 5, 999, route="TEAL", date="20260919", day="saturday")    # line data
+    add_obs(conn, 5, 60, route="TEAL SATURDAY", date="20260919", day="saturday")
+    p = predict(conn, req(route="TEAL SATURDAY", date=SAT))
+    assert p.level == "route+dir+stop+hour+day" and p.delay_s == 60
