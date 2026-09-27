@@ -253,11 +253,17 @@ async function loadHealth() {
   try {
     const h = await getJSON("/api/health");
     const since = h.collecting_since_ts ? new Date(h.collecting_since_ts * 1000).toLocaleString() : "—";
+    const cov = h.coverage;
+    const coverage = cov.gaps_missing_service
+      ? `${cov.gaps_missing_service} collector gap(s) during service in ${cov.window_days} days ` +
+        `(~${cov.missed_expected_observations.toLocaleString()} observations lost)`
+      : `no service missed in ${cov.window_days} days` +
+        (cov.gaps ? ` (${cov.gaps} gap(s) during untracked hours)` : "");
     $("health").textContent =
       `Collector ${h.collector_ok ? "running" : "NOT running"} · ` +
       `${h.observations.toLocaleString()} observed departures since ${since} · ` +
       `${h.mtd_prediction_snapshots.toLocaleString()} MTD prediction snapshots · ` +
-      `stop search via ${h.rest_search_enabled ? "MTD API" : "local GTFS"}`;
+      `${coverage} · stop search via ${h.rest_search_enabled ? "MTD API" : "local GTFS"}`;
   } catch (err) {
     console.error(err);
   }

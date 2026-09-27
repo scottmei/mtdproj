@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from . import config, db
 from .accuracy import backtest
 from .arrivals import RealtimeCache, arrivals_for_stop
+from .coverage import coverage_report
 from .mtd_rest import MtdRestClient
 from .predictors import DEFAULT_PREDICTOR, PREDICTORS, get_predictor
 from .stop_search import search_stops
@@ -67,15 +68,18 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
     def api_models():
         return {"default": DEFAULT_PREDICTOR, "models": sorted(predictors)}
 
+    gap_cache: dict = {}
+
     @app.get("/api/health")
     def api_health():
+        now = int(time.time())
         with lock:
             last = conn.execute("SELECT MAX(poll_ts) FROM polls WHERE error IS NULL").fetchone()[0]
             n_obs = conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0]
             n_pred = conn.execute("SELECT COUNT(*) FROM mtd_predictions").fetchone()[0]
             first = conn.execute("SELECT MIN(observed_ts) FROM observed_departures").fetchone()[0]
             feed = conn.execute("SELECT value FROM meta WHERE key='feed_version'").fetchone()
-        now = int(time.time())
+            coverage = coverage_report(conn, now, cache=gap_cache)
         return {
             "collector_last_poll_ts": last,
             "collector_ok": last is not None and now - last < 3 * config.POLL_INTERVAL_S,
@@ -84,6 +88,7 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
             "collecting_since_ts": first,
             "rest_search_enabled": rest.enabled,
             "gtfs_feed_version": feed[0] if feed else None,
+            "coverage": coverage,
         }
 
     if STATIC_DIR.exists():

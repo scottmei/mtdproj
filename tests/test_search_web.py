@@ -85,6 +85,7 @@ def test_web_endpoints(tmp_path):
     assert client.get("/api/stops/IT/arrivals", params={"model": "bogus"}).status_code == 400
     h = client.get("/api/health").json()
     assert h["observations"] == 0 and h["rest_search_enabled"] is False
+    assert h["coverage"]["gaps"] == 0 and h["coverage"]["missed_expected_observations"] == 0
 
 
 def test_accuracy_endpoint(tmp_path):

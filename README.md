@@ -52,6 +52,9 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 - **Stops sometimes reappear.** A trip's remaining-stop list can move *backwards*. The collector retracts
   observations for stops that come back, so a premature record doesn't stick.
 - **Trips that haven't started are in the feed too.** Their first stop is sequence 1.
+- **Late-night service is scheduled but never tracked.** The timetable lists `... LATE NIGHT` trips until
+  about 5 AM (650–990 stop times an hour), but none of them show up in the realtime feed, while about 97%
+  of early-morning service does. `coverage.py` learns this capture rate for each hour of the day.
 - **`calendar.txt` is all zeros.** Which services run each day comes only from `calendar_dates.txt`.
 - **Times go past 24:00** (up to `29:09:00`). A GTFS time is measured from "noon minus 12 h" on the
   service date, so the conversion is DST-safe (see `timeutil.py` and its DST test).
@@ -83,11 +86,15 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 38 tests
+python -m pytest                    # 50 tests
 ```
 
-The model needs history, so start the collector as early as possible and keep the machine awake
-(Settings → System → Power → "never sleep when plugged in"). When MTD publishes a new GTFS feed,
+The model needs history, so start the collector as early as possible. While it runs, the collector asks
+Windows not to idle-sleep (closing the lid still sleeps the machine). If more than 90 s pass between
+successful polls, it starts from a fresh baseline instead of guessing departure times across the gap.
+`/api/health` lists collection gaps and estimates what each one cost: scheduled stop times × the
+capture rate for that hour. An overnight gap during untracked late-night service costs nothing; a gap
+during daytime service is flagged. When MTD publishes a new GTFS feed,
 replace `gtfs\` and re-run `load_gtfs.py`. Historical tables are kept.
 
 ## Database
