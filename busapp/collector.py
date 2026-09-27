@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import httpx
 
 from . import config
+from .keepawake import prevent_sleep
 from .realtime import FeedSnapshot, fetch_trip_updates
 from .timeutil import day_type, gtfs_to_epoch, local_dt
 
@@ -176,18 +177,19 @@ class Collector:
         client = httpx.Client(timeout=10)
         log.info("Collector started, polling %s every %ss", config.TRIP_UPDATES_URL, config.POLL_INTERVAL_S)
         try:
-            while True:
-                started = time.monotonic()
-                poll_ts = int(time.time())
-                try:
-                    snap = fetch_trip_updates(client)
-                    n = self.process(snap, poll_ts)
-                    log.info("poll ok: %d trips, %d new observations%s", len(snap.trips), n,
-                             f", {self.last_retracted} retracted" if self.last_retracted else "")
-                except Exception as e:  # keep collecting through network/feed hiccups
-                    log.warning("poll failed: %s", e)
-                    self.record_error(poll_ts, e)
-                time.sleep(max(1.0, config.POLL_INTERVAL_S - (time.monotonic() - started)))
+            with prevent_sleep():
+                while True:
+                    started = time.monotonic()
+                    poll_ts = int(time.time())
+                    try:
+                        snap = fetch_trip_updates(client)
+                        n = self.process(snap, poll_ts)
+                        log.info("poll ok: %d trips, %d new observations%s", len(snap.trips), n,
+                                 f", {self.last_retracted} retracted" if self.last_retracted else "")
+                    except Exception as e:  # keep collecting through network/feed hiccups
+                        log.warning("poll failed: %s", e)
+                        self.record_error(poll_ts, e)
+                    time.sleep(max(1.0, config.POLL_INTERVAL_S - (time.monotonic() - started)))
         except KeyboardInterrupt:
             log.info("Collector stopped")
         finally:
