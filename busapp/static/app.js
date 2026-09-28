@@ -1,8 +1,8 @@
 "use strict";
+// Arrivals board. Needs common.js ($, el, getJSON, header search).
 
 const REFRESH_MS = 20_000;
 const TZ = "America/Chicago";
-const $ = (id) => document.getElementById(id);
 const fmtTime = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
 
 const state = {
@@ -11,21 +11,9 @@ const state = {
   data: null,
   clockOffsetMs: 0,   // server clock - browser clock
   refreshTimer: null,
-  suggestions: [],
-  active: -1,
 };
 
 // ---------- helpers ----------
-function el(tag, attrs = {}, ...children) {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") n.className = v;
-    else if (k === "style") n.style.cssText = v;
-    else n.setAttribute(k, v);
-  }
-  for (const c of children) if (c != null) n.append(c);
-  return n;
-}
 const nowSec = () => (Date.now() + state.clockOffsetMs) / 1000;
 const hhmm = (ts) => (ts == null ? "—" : fmtTime.format(new Date(ts * 1000)));
 
@@ -37,71 +25,6 @@ function fmtDelta(sec) {
   return { text: `${s > 0 ? "+" : "−"}${m} min`, cls };
 }
 
-async function getJSON(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  return r.json();
-}
-
-// ---------- search ----------
-let searchTimer = null;
-let searchSeq = 0;
-$("q").addEventListener("input", (e) => {
-  clearTimeout(searchTimer);
-  const q = e.target.value.trim();
-  if (!q) return hideSuggest();
-  searchTimer = setTimeout(() => runSearch(q), 200);
-});
-
-async function runSearch(q) {
-  const seq = ++searchSeq;
-  try {
-    const { results } = await getJSON(`/api/stops/search?q=${encodeURIComponent(q)}`);
-    if (seq !== searchSeq) return;   // a newer search superseded this one
-    showSuggest(results);
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-function showSuggest(results) {
-  state.suggestions = results;
-  state.active = results.length ? 0 : -1;
-  const ul = $("suggest");
-  ul.replaceChildren(
-    ...(results.length
-      ? results.map((r, i) =>
-          el("li", { role: "option", "aria-selected": String(i === 0), "data-i": i },
-            el("span", {}, r.name), el("span", { class: "detail" }, r.detail || r.id)))
-      : [el("li", { class: "muted" }, "No matching stops")])
-  );
-  ul.hidden = false;
-}
-function hideSuggest() { $("suggest").hidden = true; state.suggestions = []; state.active = -1; }
-
-function highlight(i) {
-  state.active = i;
-  [...$("suggest").children].forEach((li, j) => li.setAttribute("aria-selected", String(j === i)));
-}
-
-$("suggest").addEventListener("mousedown", (e) => {
-  const li = e.target.closest("li[data-i]");
-  if (li) chooseStop(state.suggestions[+li.dataset.i]);
-});
-$("q").addEventListener("keydown", (e) => {
-  const n = state.suggestions.length;
-  if (e.key === "ArrowDown" && n) { e.preventDefault(); highlight((state.active + 1) % n); }
-  else if (e.key === "ArrowUp" && n) { e.preventDefault(); highlight((state.active - 1 + n) % n); }
-  else if (e.key === "Enter" && state.active >= 0) { e.preventDefault(); chooseStop(state.suggestions[state.active]); }
-  else if (e.key === "Escape") hideSuggest();
-});
-$("q").addEventListener("blur", () => setTimeout(hideSuggest, 150));
-
-function chooseStop(stop) {
-  hideSuggest();
-  $("q").value = stop.name;
-  location.hash = encodeURIComponent(stop.id);
-}
 
 // ---------- arrivals board ----------
 async function loadBoard() {

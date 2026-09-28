@@ -1,6 +1,5 @@
 "use strict";
-
-const $ = (id) => document.getElementById(id);
+// Insights page. Needs common.js ($, el, header search).
 
 const state = {
   by: "line",
@@ -9,17 +8,6 @@ const state = {
   sortDir: -1,
   seq: 0,
 };
-
-function el(tag, attrs = {}, ...children) {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") n.className = v;
-    else if (k === "style") n.style.cssText = v;
-    else n.setAttribute(k, v);
-  }
-  for (const c of children) if (c != null) n.append(c);
-  return n;
-}
 
 const mins = (s, digits = 1) => (s == null ? "—" : `${(s / 60).toFixed(digits)}`);
 const signedMin = (s) => (s == null ? "—" : `${s >= 0 ? "+" : "−"}${Math.abs(s / 60).toFixed(1)} min`);
@@ -169,15 +157,22 @@ document.querySelector("thead").addEventListener("click", (e) => {
   render();
 });
 
-$("by").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-by]");
-  if (!b) return;
-  state.by = b.dataset.by;
+function selectBy(by) {
+  const b = $("by").querySelector(`button[data-by="${by}"]`);
+  if (!b) return false;
+  state.by = by;
   state.sortKey = null;
   for (const x of $("by").querySelectorAll("button")) x.setAttribute("aria-checked", String(x === b));
-  load();
+  history.replaceState(null, "", `#by=${by}`);   // the grouping is bookmarkable
+  return true;
+}
+
+$("by").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-by]");
+  if (b && selectBy(b.dataset.by)) load();
 });
 for (const id of ["days", "horizon", "min-n"]) $(id).addEventListener("change", load);
 $("filters").addEventListener("submit", (e) => { e.preventDefault(); load(); });
 
+selectBy(new URLSearchParams(location.hash.slice(1)).get("by") || "line") || selectBy("line");
 load();

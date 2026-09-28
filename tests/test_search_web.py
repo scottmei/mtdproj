@@ -112,3 +112,18 @@ def test_breakdown_endpoint(tmp_path):
     assert client.get("/api/breakdown", params={"by": "planet"}).status_code == 400
     assert client.get("/api/breakdown", params={"horizon": 7}).status_code == 400
     assert client.get("/api/breakdown", params={"model": "x"}).status_code == 400
+
+
+def test_pages_and_assets_always_revalidate(tmp_path):
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    c.close()
+    client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
+                                   rt_cache=StubRT(), background=False))
+    for url in ["/", "/insights", "/static/style.css", "/static/common.js", "/static/insights.js"]:
+        r = client.get(url)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", url
+    for page in ["/", "/insights"]:  # both pages carry the shared header search + script
+        html = client.get(page).text
+        assert 'id="q"' in html and "/static/common.js" in html

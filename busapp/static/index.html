@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CU Bus Predictor</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%8C%3C/text%3E%3C/svg%3E">
 </head>
 <body>
   <header class="top">
@@ -20,7 +21,7 @@
       <a href="/insights">Insights</a>
     </nav>
     <div class="search" role="search">
-      <input id="q" type="search" placeholder="Search a stop — e.g. Illinois Terminal, Wright & Healey, 3121"
+      <input id="q" type="search" placeholder="Search a stop — e.g. Illinois Terminal, Wright &amp; Healey, 3121"
              autocomplete="off" aria-label="Search for a stop" aria-controls="suggest">
       <ul id="suggest" class="suggest" role="listbox" hidden></ul>
     </div>
@@ -73,6 +74,7 @@
   </main>
 
   <footer id="health" class="muted"></footer>
+  <script src="/static/common.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

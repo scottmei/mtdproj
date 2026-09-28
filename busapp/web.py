@@ -36,6 +36,16 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
             threading.Thread(target=rest.keep_warm, name="mtd-rest-warm", daemon=True).start()
         threading.Thread(target=scores.keep_warm, name="score-warm", daemon=True).start()
 
+    @app.middleware("http")
+    async def revalidate_assets(request, call_next):
+        """Without Cache-Control, browsers may reuse a stale style.css/app.js for hours after
+        an update (heuristic freshness). `no-cache` = always revalidate; unchanged files cost
+        only a 304 thanks to the ETag StaticFiles already sends."""
+        response = await call_next(request)
+        if not request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/api/stops/search")
     def api_search(q: str = Query(..., min_length=1, max_length=50)):
         with lock:
