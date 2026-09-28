@@ -64,9 +64,9 @@
             <th class="num"><button type="button" data-sort="median_delay_s">Median</button></th>
             <th class="num"><button type="button" data-sort="pct_late_5min">&gt;5 min late</button></th>
             <th class="num"><button type="button" data-sort="pct_early_1min">&gt;1 min early</button></th>
-            <th class="num acc"><button type="button" data-sort="schedule_mae_s">Schedule</button></th>
-            <th class="num acc"><button type="button" data-sort="mtd_mae_s">MTD live</button></th>
-            <th class="num acc"><button type="button" data-sort="ours_mae_s">Our model</button></th>
+            <th class="num acc"><button type="button" data-sort="schedule_mae_s" title="Average error of the timetable">Schedule error</button></th>
+            <th class="num acc"><button type="button" data-sort="mtd_mae_s" title="Average error of MTD's live estimate at the chosen horizon">MTD error</button></th>
+            <th class="num acc"><button type="button" data-sort="ours_mae_s" title="Average error of our model (earlier-day history only)">Our error</button></th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -78,7 +78,7 @@
       <p><b>Average delay</b> is observed departure minus scheduled time; bars grow right for late and
         left for early from the zero line. The whisker is a 95% confidence interval <em>clustered by bus
         trip</em>: a late bus is late at every stop it serves, so its stops are not independent evidence.</p>
-      <p><b>Schedule / MTD live / Our model</b> are average errors (mean absolute error) on the same
+      <p><b>Schedule / MTD / Our error</b> are average errors (mean absolute error) on the same
         departures within each group: those where MTD's estimate from the chosen horizon was captured and
         our model had earlier-day history. The closest estimate is in bold. "—" means no departures qualify
         yet, typically a service pattern with no earlier day to learn from.</p>
