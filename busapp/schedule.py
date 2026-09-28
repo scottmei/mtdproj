@@ -23,6 +23,39 @@ class ScheduledVisit:
     scheduled_ts: int
 
 
+_COMPASS = {"N": "North", "S": "South", "E": "East", "W": "West"}
+_CORNERS = ("NE", "NW", "SE", "SW")
+
+
+def boarding_label(stop_name: str) -> str | None:
+    """Where on the street a boarding point is, written out consistently.
+
+    MTD names the same kind of spot 45 different ways: '(NE)', '(NE Corner)', '(SE Far)',
+    '(SS)', '(East side)', '(South)'. Riders need one vocabulary: 'NE Corner', 'SE Far Side',
+    'South Side', 'Island Shelter', 'Platform A'. None when the name has no location.
+    """
+    m = re.search(r"\(([^)]*)\)\s*$", stop_name)
+    if not m or not m[1].strip():
+        return None
+    raw = " ".join(m[1].split())
+    if raw.isdigit():                      # e.g. '(1101)': a street number, not a location
+        return None
+    side = re.fullmatch(r"([NSEW])\.? ?Side", raw)
+    if side:                               # 'N. Side'
+        return f"{_COMPASS[side[1]]} Side"
+    if raw in _CORNERS:
+        return f"{raw} Corner"
+    if raw in _COMPASS or raw in _COMPASS.values():
+        return f"{_COMPASS.get(raw, raw)} Side"
+    if len(raw) == 2 and raw[1] == "S" and raw[0] in _COMPASS:   # 'SS' = South Side
+        return f"{_COMPASS[raw[0]]} Side"
+    words = raw.split()
+    if len(words) == 2 and words[0] in _CORNERS and words[1] == "Far":
+        return f"{words[0]} Far Side"
+    # otherwise keep MTD's wording, capitalized consistently ('East side' -> 'East Side')
+    return " ".join(w if w.isupper() else w[:1].upper() + w[1:] for w in words)
+
+
 def _group_name(base_id: str, rows: list) -> str:
     """Parent stop's name if there is one, else the first platform's name minus '(NE Corner)'."""
     parent = next((r["stop_name"] for r in rows if r["stop_id"] == base_id), None)

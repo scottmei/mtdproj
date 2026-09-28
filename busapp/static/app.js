@@ -25,7 +25,6 @@ function fmtDelta(sec) {
   return { text: `${s > 0 ? "+" : "−"}${m} min`, cls };
 }
 
-
 // ---------- arrivals board ----------
 async function loadBoard() {
   if (!state.stopId) return;
@@ -78,7 +77,6 @@ function deltaCell(ts, sched, extra) {
 function renderRow(a) {
   const canceled = a.status === "canceled";
   const live = a.status === "live";
-  const platform = a.platform.match(/\(([^)]*)\)\s*$/)?.[1] ?? a.stop_id;
   const modelNote = el("span", { class: "model-note" },
     a.model_n ? `${a.model_level} · n=${a.model_n}` : "no history yet");
   return el("tr", { class: canceled ? "canceled" : "" },
@@ -89,9 +87,9 @@ function renderRow(a) {
     el("td", {},
       el("span", { class: "dest" }, a.headsign || ""),
       canceled ? el("span", { class: "badge" }, "CANCELED") : null,
-      // "South Side" is where you board (eastbound buses stop on the south side), not the
-      // direction of travel; say so, or it reads as contradicting "East to ..."
-      el("span", { class: "platform" }, `Boards at ${platform}` + (a.vehicle_id ? ` · bus ${a.vehicle_id}` : ""))),
+      // boarding point spelled out server-side ("NE Corner", "Island Shelter"); omitted if unknown
+      el("span", { class: "platform" },
+        [a.boarding, a.vehicle_id && `bus ${a.vehicle_id}`].filter(Boolean).join(" · "))),
     el("td", { class: "num" }, el("span", { class: "time" }, hhmm(a.scheduled_ts))),
     deltaCell(a.mtd_ts, a.scheduled_ts),
     deltaCell(a.predicted_ts, a.scheduled_ts, modelNote),

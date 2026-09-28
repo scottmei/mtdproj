@@ -10,7 +10,7 @@ import httpx
 from . import config
 from .predictors import Prediction, PredictionRequest, Predictor
 from .realtime import FeedSnapshot, fetch_trip_updates
-from .schedule import ScheduledVisit, scheduled_visits, stop_group
+from .schedule import ScheduledVisit, boarding_label, scheduled_visits, stop_group
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class ArrivalRow:
     headsign: str | None
     stop_id: str
     platform: str
+    boarding: str | None   # where on the street to board, e.g. 'NE Corner'
     scheduled_ts: int
     mtd_ts: int | None
     predicted_ts: int
@@ -81,7 +82,8 @@ def build_board(visits: list[ScheduledVisit], snap: FeedSnapshot | None, predict
                 continue
         rows.append(ArrivalRow(
             v.trip_id, v.route_id, v.route_short_name, v.route_long_name, v.route_color,
-            v.route_text_color, v.headsign, v.stop_id, v.platform, v.scheduled_ts, mtd_ts,
+            v.route_text_color, v.headsign, v.stop_id, v.platform, boarding_label(v.platform),
+            v.scheduled_ts, mtd_ts,
             p.predicted_ts, round(p.delay_s, 1), p.level, p.n_samples, status, vehicle, best,
             max(0, (best - now_ts) // 60)))
     rows.sort(key=lambda r: (r.best_ts, r.scheduled_ts))

@@ -117,3 +117,33 @@ def test_visit_uses_sign_shown_at_that_stop(conn):
     conn.execute("UPDATE stop_times SET stop_headsign=NULL")
     (v,) = scheduled_visits(conn, ["IT:1"], t - 60, t + 60)
     assert v.headsign == "North"                            # falls back to the trip's sign
+
+
+import pytest  # noqa: E402
+
+from busapp.schedule import boarding_label  # noqa: E402
+
+
+@pytest.mark.parametrize("name,label", [
+    ("Goodwin & Gregory (NE Corner)", "NE Corner"),
+    ("Green & Sixth (NE)", "NE Corner"),
+    ("Neil & Kirby (SE Far)", "SE Far Side"),
+    ("Florida & Lincoln (South)", "South Side"),
+    ("Main & Race (SS)", "South Side"),
+    ("First & Gregory (E)", "East Side"),
+    ("Kirby & Neil (N. Side)", "North Side"),
+    ("Springfield & Mattis (East side)", "East Side"),
+    ("Illini Union (Island Shelter)", "Island Shelter"),
+    ("Illinois Terminal (Platform A)", "Platform A"),
+    ("Some Road (1101)", None),
+    ("First at iHotel", None),
+])
+def test_boarding_label_is_spelled_out(name, label):
+    assert boarding_label(name) == label
+
+
+def test_board_rows_carry_boarding_label():
+    v = ScheduledVisit("T", SD, 5, "GWNGRG:3", "Goodwin & Gregory (SS)", "TEAL", 0, "East", "12",
+                       "Teal", "006991", "ffffff", 10_000)
+    (row,) = build_board([v], None, FixedDelay(0), 9_000)
+    assert row.boarding == "South Side"

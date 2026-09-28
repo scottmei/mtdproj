@@ -57,9 +57,10 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 - **Destination signs change mid-trip.** 7% of stop times carry their own `stop_headsign`, different
   from the trip's. At Illinois Terminal, a Red trip signed "U to Illinois Terminal - Urbana Meijer"
   actually shows "U to Urbana Meijer". The board uses the per-stop sign.
-- **Boarding points are named by street position** ("South Side", "NE Corner"), not direction. An
-  eastbound bus stops on the south side, so the board says "Boards at South Side" to avoid reading as
-  a contradiction of "East to …".
+- **Boarding-point names are inconsistent.** MTD writes the same kind of spot 45 ways: `(NE)`,
+  `(NE Corner)`, `(SE Far)`, `(SS)`, `(East side)`, `(N. Side)`. `schedule.boarding_label()` spells them
+  out in one vocabulary ("NE Corner", "SE Far Side", "South Side", "Island Shelter"), and shows nothing
+  when a stop has no location. These describe where on the street you board, not the direction of travel.
 - **Late-night service is scheduled but never tracked.** The timetable lists `... LATE NIGHT` trips until
   about 5 AM (650–990 stop times an hour), but none of them show up in the realtime feed, while about 97%
   of early-morning service does. `coverage.py` learns this capture rate for each hour of the day.
@@ -94,7 +95,7 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 66 tests
+python -m pytest                    # 79 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks
