@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bus Delay Insights</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🚌</span>
+      <div>
+        <h1>CU Bus Predictor</h1>
+        <p class="tagline">Where and when are buses late — and whose estimate is closest?</p>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Pages">
+      <a href="/">Arrivals</a>
+      <a href="/insights" aria-current="page">Insights</a>
+    </nav>
+  </header>
+
+  <main>
+    <form id="filters" class="filters" aria-label="Breakdown filters">
+      <label>Period
+        <select id="days">
+          <option value="1">Last 24 hours</option>
+          <option value="3">Last 3 days</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="28">Last 28 days</option>
+        </select>
+      </label>
+      <div class="segmented" role="radiogroup" aria-label="Group by" id="by">
+        <button type="button" role="radio" data-by="line" aria-checked="true">Line</button>
+        <button type="button" role="radio" data-by="stop" aria-checked="false">Stop</button>
+        <button type="button" role="radio" data-by="hour" aria-checked="false">Hour</button>
+        <button type="button" role="radio" data-by="day_type" aria-checked="false">Day</button>
+        <button type="button" role="radio" data-by="route" aria-checked="false">Route pattern</button>
+      </div>
+      <label>Min. departures <input id="min-n" type="number" min="1" step="10" value="100"></label>
+      <label>MTD looked
+        <select id="horizon">
+          <option value="2">2 min ahead</option>
+          <option value="5">5 min ahead</option>
+          <option value="10" selected>10 min ahead</option>
+          <option value="15">15 min ahead</option>
+          <option value="20">20 min ahead</option>
+          <option value="30">30 min ahead</option>
+        </select>
+      </label>
+    </form>
+
+    <p id="summary" class="muted summary"></p>
+
+    <div class="table-wrap" id="wrap">
+      <table class="breakdown">
+        <thead>
+          <tr>
+            <th><button type="button" data-sort="label">Group</button></th>
+            <th class="num"><button type="button" data-sort="n">Departures</button></th>
+            <th class="bar-col"><button type="button" data-sort="mean_delay_s">Average delay</button></th>
+            <th class="num"><button type="button" data-sort="median_delay_s">Median</button></th>
+            <th class="num"><button type="button" data-sort="pct_late_5min">&gt;5 min late</button></th>
+            <th class="num"><button type="button" data-sort="pct_early_1min">&gt;1 min early</button></th>
+            <th class="num acc"><button type="button" data-sort="schedule_mae_s">Schedule</button></th>
+            <th class="num acc"><button type="button" data-sort="mtd_mae_s">MTD live</button></th>
+            <th class="num acc"><button type="button" data-sort="ours_mae_s">Our model</button></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+    <section class="notes muted">
+      <p><b>Average delay</b> is observed departure minus scheduled time; bars grow right for late and
+        left for early from the zero line. The whisker is a 95% confidence interval <em>clustered by bus
+        trip</em>: a late bus is late at every stop it serves, so its stops are not independent evidence.</p>
+      <p><b>Schedule / MTD live / Our model</b> are average errors (mean absolute error) on the same
+        departures within each group: those where MTD's estimate from the chosen horizon was captured and
+        our model had earlier-day history. The closest estimate is in bold. "—" means no departures qualify
+        yet, typically a service pattern with no earlier day to learn from.</p>
+    </section>
+  </main>
+
+  <script src="/static/insights.js"></script>
+</body>
+</html>

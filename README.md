@@ -35,7 +35,9 @@ one writer and many readers work at the same time). Collection keeps running whi
 | `busapp/schedule.py` | Scheduled visits to a stop across service days |
 | `busapp/predictors/` | `Predictor` interface, registry, `AverageDelayPredictor` |
 | `busapp/arrivals.py` | Merges schedule, realtime and prediction; drops buses that already left |
-| `busapp/accuracy.py` | Backtest |
+| `busapp/accuracy.py` | Backtest; `ScoreCache` scores every departure in the background on its own connection |
+| `busapp/breakdown.py` | Lateness and accuracy by line, stop, hour, day type or route pattern |
+| `busapp/coverage.py` | Collector gaps, weighted by how much service is actually observable |
 | `busapp/web.py`, `busapp/static/` | FastAPI app and single-page UI |
 
 ## What the data looks like (and why it matters)
@@ -86,7 +88,7 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 54 tests
+python -m pytest                    # 61 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks
@@ -157,6 +159,20 @@ FROM observed_departures o
 LEFT JOIN mtd_predictions p USING (trip_id, service_date, stop_sequence)
 GROUP BY o.trip_id, o.service_date, o.stop_sequence;
 ```
+
+## Insights page
+
+`http://localhost:8080/insights` (API: `/api/breakdown?by=line|stop|hour|day_type|route`) answers
+"which line or stop is the most late, and when?" For each group it shows:
+
+- **Lateness:** average and median delay, the share of buses more than 5 min late or more than 1 min
+  early, and a **95% confidence interval clustered by bus trip**. A late bus is late at every stop it
+  serves, so treating its stops as independent would make the interval far too narrow.
+- **Accuracy:** schedule vs MTD (from a chosen horizon) vs our model, on the same departures within the
+  group. Our model uses only earlier-day history.
+
+Groups below a minimum sample size are hidden, so a stop with six buses can't top the list by chance.
+Clicking a stop opens its arrivals board.
 
 ## Adding a model
 

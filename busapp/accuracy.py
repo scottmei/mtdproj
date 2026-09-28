@@ -5,13 +5,18 @@ same set of departures, (a) the schedule, (b) MTD's prediction as it stood ~H
 minutes before the bus came, and (c) our model, which may only use data from
 before the start of that departure's service day (no look-ahead).
 """
+import logging
 import sqlite3
+import threading
 import time
 from dataclasses import asdict, dataclass
 
-from . import config
-from .predictors import PredictionRequest, Predictor
+from . import config, db
+from .predictors import (DEFAULT_PREDICTOR, PREDICTORS, Prediction, PredictionRequest, Predictor,
+                         get_predictor)
 from .timeutil import service_day_origin
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -37,9 +42,12 @@ def _pivot_sql() -> str:
         for h in config.HORIZONS_MIN)
     return f"""
 SELECT o.trip_id, o.service_date, o.stop_sequence, o.stop_id, o.route_id, o.direction_id,
-       o.scheduled_ts, o.observed_ts,
+       o.scheduled_ts, o.observed_ts, o.delay_s, o.hour_local, o.day_type,
+       r.long_name AS line, r.color AS line_color, s.base_id,
   {cols}
 FROM observed_departures o
+LEFT JOIN routes r ON r.route_id = o.route_id
+LEFT JOIN stops s  ON s.stop_id = o.stop_id
 LEFT JOIN mtd_predictions p
        ON p.trip_id = o.trip_id AND p.service_date = o.service_date
       AND p.stop_sequence = o.stop_sequence
@@ -48,18 +56,72 @@ GROUP BY o.trip_id, o.service_date, o.stop_sequence
 """
 
 
-def backtest(conn: sqlite3.Connection, predictor: Predictor, days: int = 7,
-             now_ts: int | None = None) -> dict:
+Scored = tuple[sqlite3.Row, Prediction]
+
+
+def score(conn: sqlite3.Connection, predictor: Predictor, days: int = 7,
+          now_ts: int | None = None) -> list[Scored]:
+    """Every observed departure in the window, with MTD's horizon snapshots pivoted into
+    columns and our model's walk-forward prediction (only data from before its service day)."""
     now_ts = int(time.time()) if now_ts is None else now_ts
     rows = conn.execute(_pivot_sql(), (now_ts - days * 86400, config.MAX_POLL_GAP_S)).fetchall()
-
     preds = predictor.predict_many([
         PredictionRequest(r["trip_id"], r["route_id"], r["direction_id"], r["stop_id"],
                           r["service_date"], r["scheduled_ts"],
-                          now_ts=service_day_origin(r["service_date"]))  # only prior days' data
+                          now_ts=service_day_origin(r["service_date"]))
         for r in rows
     ])
-    ours = [(r, p) for r, p in zip(rows, preds) if p.n_samples > 0]
+    return list(zip(rows, preds))
+
+
+class ScoreCache:
+    """Walk-forward scores shared by the accuracy and breakdown endpoints.
+
+    Scoring every departure takes seconds (~13 s for 100k rows cold), so it runs on its
+    own SQLite connection (WAL allows concurrent readers) and never holds the web app's
+    connection lock; the arrivals board stays responsive while it runs. `keep_warm()`
+    refreshes the default window before it expires, so visitors never wait for it.
+    """
+
+    DEFAULT = (DEFAULT_PREDICTOR, 7)
+
+    def __init__(self, db_path=None, ttl_s: int = 600):
+        self.conn = db.connect(db_path)
+        self.predictors = {name: get_predictor(name, self.conn) for name in PREDICTORS}
+        self.ttl_s = ttl_s
+        self._lock = threading.Lock()
+        self._data: dict[tuple[str, int], tuple[float, list[Scored]]] = {}
+
+    def get(self, model: str, days: int, refresh: bool = False) -> list[Scored]:
+        if model not in self.predictors:
+            raise ValueError(f"Unknown model {model!r}; choose from {sorted(self.predictors)}")
+        with self._lock:  # concurrent callers wait for one computation instead of repeating it
+            hit = self._data.get((model, days))
+            if hit and not refresh and time.time() - hit[0] < self.ttl_s:
+                return hit[1]
+            scored = score(self.conn, self.predictors[model], days)
+            # keep the default window plus the most recently requested other one
+            self._data = {k: v for k, v in self._data.items() if k == self.DEFAULT}
+            self._data[(model, days)] = (time.time(), scored)
+            return scored
+
+    def keep_warm(self) -> None:
+        """Run forever in a daemon thread: rescore the default window before its TTL lapses."""
+        while True:
+            t0 = time.time()
+            try:
+                self.get(*self.DEFAULT, refresh=True)
+                log.info("Scored default window in %.1fs", time.time() - t0)
+            except Exception as e:
+                log.warning("Background scoring failed: %s", e)
+            time.sleep(max(60, self.ttl_s - 60))
+
+
+def backtest(conn: sqlite3.Connection, predictor: Predictor, days: int = 7,
+             now_ts: int | None = None, scored: list[Scored] | None = None) -> dict:
+    scored = score(conn, predictor, days, now_ts) if scored is None else scored
+    rows = [r for r, _ in scored]
+    ours = [(r, p) for r, p in scored if p.n_samples > 0]
 
     by_horizon = []
     for h in config.HORIZONS_MIN:

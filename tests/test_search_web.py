@@ -73,7 +73,7 @@ def test_web_endpoints(tmp_path):
     seed(c)
     c.close()
     client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
-                                   rt_cache=StubRT()))
+                                   rt_cache=StubRT(), background=False))
     r = client.get("/api/stops/search", params={"q": "illinois"})
     assert r.status_code == 200 and r.json()["results"][0]["id"] == "IT"
     r = client.get("/api/stops/IT/arrivals")
@@ -94,7 +94,21 @@ def test_accuracy_endpoint(tmp_path):
     db.init_schema(c)
     c.close()
     client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
-                                   rt_cache=StubRT()))
+                                   rt_cache=StubRT(), background=False))
     body = client.get("/api/accuracy").json()
     assert body["observations"] == 0 and len(body["by_horizon"]) == 6
     assert client.get("/api/accuracy", params={"model": "x"}).status_code == 400
+
+
+def test_breakdown_endpoint(tmp_path):
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    c.close()
+    client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
+                                   rt_cache=StubRT(), background=False))
+    body = client.get("/api/breakdown", params={"by": "stop"}).json()
+    assert body["by"] == "stop" and body["groups"] == [] and body["departures"] == 0
+    assert client.get("/api/breakdown", params={"by": "planet"}).status_code == 400
+    assert client.get("/api/breakdown", params={"horizon": 7}).status_code == 400
+    assert client.get("/api/breakdown", params={"model": "x"}).status_code == 400

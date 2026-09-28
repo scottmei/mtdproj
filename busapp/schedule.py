@@ -23,6 +23,12 @@ class ScheduledVisit:
     scheduled_ts: int
 
 
+def _group_name(base_id: str, rows: list) -> str:
+    """Parent stop's name if there is one, else the first platform's name minus '(NE Corner)'."""
+    parent = next((r["stop_name"] for r in rows if r["stop_id"] == base_id), None)
+    return parent or re.sub(r"\s*\([^)]*\)\s*$", "", rows[0]["stop_name"])
+
+
 def stop_group(conn: sqlite3.Connection, base_id: str) -> tuple[str, list[str]] | None:
     """(display name, boarding-point stop_ids) for a stop the rider picked, e.g. 'IT'."""
     rows = conn.execute(
@@ -30,9 +36,16 @@ def stop_group(conn: sqlite3.Connection, base_id: str) -> tuple[str, list[str]] 
     ).fetchall()
     if not rows:
         return None
-    parent = next((r["stop_name"] for r in rows if r["stop_id"] == base_id), None)
-    name = parent or re.sub(r"\s*\([^)]*\)\s*$", "", rows[0]["stop_name"])
-    return name, [r["stop_id"] for r in rows if r["stop_id"] != base_id or len(rows) == 1]
+    return _group_name(base_id, rows), [r["stop_id"] for r in rows
+                                        if r["stop_id"] != base_id or len(rows) == 1]
+
+
+def stop_group_names(conn: sqlite3.Connection) -> dict[str, str]:
+    """{base_id: display name} for every stop group, named the same way as stop_group()."""
+    groups: dict[str, list] = {}
+    for r in conn.execute("SELECT base_id, stop_id, stop_name FROM stops ORDER BY stop_id"):
+        groups.setdefault(r["base_id"], []).append(r)
+    return {bid: _group_name(bid, rows) for bid, rows in groups.items()}
 
 
 _VISITS_SQL = """

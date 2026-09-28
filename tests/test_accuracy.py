@@ -39,3 +39,22 @@ def test_backtest_uses_only_prior_days_and_compares_same_subset(conn):
     assert h10["ours"]["mae_s"] == 60.0          # sched+120 vs 180 and 60 -> |−60|, |60|
     assert next(h for h in res["by_horizon"] if h["horizon_min"] == 5)["mtd"]["n"] == 0
     assert h10["all"]["mtd"]["n"] == 2 and h10["all"]["schedule"]["mae_s"] == 120.0
+
+
+def test_score_cache_reuses_then_refreshes(tmp_path):
+    import pytest
+
+    from busapp import db
+    from busapp.accuracy import ScoreCache
+
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    add(c, D1, 1, 120)
+    c.commit()
+    cache = ScoreCache(path)
+    first = cache.get("avg_delay", 7)
+    assert len(first) == 1 and cache.get("avg_delay", 7) is first      # cached
+    assert cache.get("avg_delay", 7, refresh=True) is not first        # recomputed
+    with pytest.raises(ValueError):
+        cache.get("nope", 7)
