@@ -127,3 +127,37 @@ def test_pages_and_assets_always_revalidate(tmp_path):
     for page in ["/", "/insights"]:  # both pages carry the shared header search + script
         html = client.get(page).text
         assert 'id="q"' in html and "/static/common.js" in html
+
+
+def test_pages_reference_content_versioned_assets(tmp_path):
+    import re
+
+    from busapp.web import asset_version
+
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    c.close()
+    client = TestClient(create_app(path, rest=rest_client(lambda r: httpx.Response(500), key=""),
+                                   rt_cache=StubRT(), background=False))
+    for page in ["/", "/insights"]:
+        refs = re.findall(r'"(/static/([\w.-]+)\?v=(\w+))"', client.get(page).text)
+        assert {name for _, name, _ in refs} >= {"style.css", "common.js"}, page
+        for url, name, v in refs:
+            assert v == asset_version(name)          # hash tracks the file's content
+            assert client.get(url).status_code == 200
+
+
+def test_page_scripts_do_not_redeclare_common_globals():
+    """A duplicate top-level const/function across classic scripts on one page is a
+    SyntaxError that stops the whole second script (this broke the arrivals page)."""
+    import re
+    from pathlib import Path
+
+    static = Path(__file__).resolve().parent.parent / "busapp" / "static"
+    decl = re.compile(r"^(?:const|let|function|async function)\s+([$\w]+)", re.M)
+    common = set(decl.findall((static / "common.js").read_text(encoding="utf-8")))
+    assert {"$", "el", "getJSON"} <= common
+    for page_js in ["app.js", "insights.js"]:
+        clash = common & set(decl.findall((static / page_js).read_text(encoding="utf-8")))
+        assert not clash, f"{page_js} redeclares {clash}"

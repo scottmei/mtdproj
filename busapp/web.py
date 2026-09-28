@@ -1,10 +1,12 @@
 """FastAPI app: stop search, arrivals board, health. Serves the single-page UI from /static."""
+import hashlib
+import re
 import threading
 import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, db
@@ -17,6 +19,23 @@ from .predictors import DEFAULT_PREDICTOR, PREDICTORS, get_predictor
 from .stop_search import search_stops
 
 STATIC_DIR = Path(__file__).with_name("static")
+_ASSET_REF = re.compile(r'(/static/[\w.-]+\.(?:js|css))"')
+
+
+def asset_version(name: str) -> str:
+    """Short content hash of a static file; changes whenever the file does."""
+    return hashlib.sha256((STATIC_DIR / name).read_bytes()).hexdigest()[:12]
+
+
+def render_page(name: str) -> str:
+    """HTML with every script/stylesheet URL versioned (`app.js?v=<hash>`).
+
+    Browsers that cached an older app.js before we sent Cache-Control would otherwise
+    pair it with new HTML (e.g. old app.js + new common.js both declaring `$` -> the
+    page's script dies). A new URL per content version makes that impossible.
+    """
+    html = (STATIC_DIR / name).read_text(encoding="utf-8")
+    return _ASSET_REF.sub(lambda m: f'{m[1]}?v={asset_version(m[1].rsplit("/", 1)[1])}"', html)
 
 
 def create_app(db_path=None, rest: MtdRestClient | None = None,
@@ -120,10 +139,10 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
 
         @app.get("/", include_in_schema=False)
         def index():
-            return FileResponse(STATIC_DIR / "index.html")
+            return HTMLResponse(render_page("index.html"))
 
         @app.get("/insights", include_in_schema=False)
         def insights():
-            return FileResponse(STATIC_DIR / "insights.html")
+            return HTMLResponse(render_page("insights.html"))
 
     return app
