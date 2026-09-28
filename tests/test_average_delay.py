@@ -112,3 +112,30 @@ def test_route_level_still_preferred_when_available(conn):
     add_obs(conn, 5, 60, route="TEAL SATURDAY", date="20260919", day="saturday")
     p = predict(conn, req(route="TEAL SATURDAY", date=SAT))
     assert p.level == "route+dir+stop+hour+day" and p.delay_s == 60
+
+
+def test_one_pass_rollup_matches_direct_group_by(conn):
+    import math
+    import random
+
+    from busapp import config
+    from busapp.predictors.average_delay import _SQL_COLUMN
+
+    seed_routes(conn)
+    rng = random.Random(7)
+    for i in range(400):
+        add_obs(conn, 1, rng.randint(-120, 900), route=rng.choice(["TEAL", "TEAL SATURDAY", "TEAL ALT"]),
+                direction=rng.choice([0, 1]), stop=rng.choice(["A:1", "B:1", "C:2"]),
+                secs=rng.choice([8, 12, 18]) * 3600, day=rng.choice(["weekday", "saturday"]), start=i)
+    p = AverageDelayPredictor(conn)
+    cutoff = gtfs_to_epoch(FRI, 0)
+    for (label, names), agg in zip(p.levels, p._all_levels(cutoff)):
+        cols = ", ".join(_SQL_COLUMN[c] for c in names)
+        join = "JOIN routes r ON r.route_id = o.route_id" if "line" in names else ""
+        direct = {tuple(r[:len(names)]): (r[-2], r[-1]) for r in conn.execute(
+            f"SELECT {cols}, AVG(o.delay_s), COUNT(*) FROM observed_departures o {join} "
+            f"WHERE o.scheduled_ts >= ? AND o.scheduled_ts < ? AND o.poll_gap_s <= ? GROUP BY {cols}",
+            (cutoff - p.lookback_s, cutoff, config.MAX_POLL_GAP_S))}
+        assert direct.keys() == agg.keys(), label
+        for k, (mean, n) in direct.items():
+            assert agg[k][1] == n and math.isclose(agg[k][0], mean), (label, k)
