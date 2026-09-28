@@ -21,4 +21,12 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _migrate(conn)
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Bring databases created by older versions up to date without losing collected data."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(stop_times)")}
+    if "stop_headsign" not in cols:  # added 2026-09-28; re-run load_gtfs.py to fill it
+        conn.execute("ALTER TABLE stop_times ADD COLUMN stop_headsign TEXT")

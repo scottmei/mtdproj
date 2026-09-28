@@ -50,7 +50,8 @@ def stop_group_names(conn: sqlite3.Connection) -> dict[str, str]:
 
 _VISITS_SQL = """
 SELECT st.trip_id, st.stop_sequence, st.stop_id, st.departure_s,
-       s.stop_name, t.route_id, t.direction_id, t.headsign,
+       s.stop_name, t.route_id, t.direction_id,
+       COALESCE(st.stop_headsign, t.headsign) AS headsign,  -- MTD changes signs mid-trip
        r.short_name, r.long_name, r.color, r.text_color
 FROM stop_times st
 JOIN trips t           ON t.trip_id = st.trip_id

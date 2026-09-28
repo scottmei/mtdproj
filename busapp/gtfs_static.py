@@ -74,10 +74,11 @@ def load_gtfs(conn: sqlite3.Connection, gtfs_dir: Path) -> dict[str, int]:
             ),
         )
         conn.executemany(
-            "INSERT INTO stop_times VALUES (?,?,?,?,?)",
+            "INSERT INTO stop_times VALUES (?,?,?,?,?,?)",
             (
                 (r["trip_id"], int(r["stop_sequence"]), r["stop_id"],
-                 parse_gtfs_time(r["arrival_time"]), parse_gtfs_time(r["departure_time"]))
+                 parse_gtfs_time(r["arrival_time"]), parse_gtfs_time(r["departure_time"]),
+                 (r.get("stop_headsign") or "").strip() or None)
                 for r in _rows(gtfs_dir, "stop_times.txt")
                 if r["arrival_time"] and r["departure_time"]
             ),

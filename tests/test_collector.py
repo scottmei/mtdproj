@@ -61,7 +61,8 @@ def test_horizon_snapshots_once_per_horizon_and_only_near_h():
 def seed_static(conn):
     conn.execute("INSERT INTO trips VALUES ('T1','TEAL','S1',0,'North','B1')")
     for seq, stop, secs in [(1, "A", 18 * 3600), (2, "B", 18 * 3600 + 300), (3, "C", 18 * 3600 + 600)]:
-        conn.execute("INSERT INTO stop_times VALUES ('T1',?,?,?,?)", (seq, stop, secs, secs))
+        conn.execute("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                     "VALUES ('T1',?,?,?,?)", (seq, stop, secs, secs))
     conn.commit()
 
 

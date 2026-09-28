@@ -22,7 +22,8 @@ def seed(conn):
         ("OFF", "TEAL", "S_SAT", 0, "North", "B"),    # not running Friday
         ("ENDS", "TEAL", "S_FRI", 0, "To IT", "B"),   # terminates at IT
     ])
-    conn.executemany("INSERT INTO stop_times VALUES (?,?,?,?,?)", [
+    conn.executemany("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                     "VALUES (?,?,?,?,?)", [
         ("RUNS", 1, "IT:1", 18 * 3600, 18 * 3600), ("RUNS", 2, "Z:1", 18 * 3600 + 600, 18 * 3600 + 600),
         ("LATE", 1, "IT:2", 24 * 3600 + 600, 24 * 3600 + 600), ("LATE", 2, "Z:1", 25 * 3600, 25 * 3600),
         ("OFF", 1, "IT:1", 18 * 3600, 18 * 3600), ("OFF", 2, "Z:1", 19 * 3600, 19 * 3600),
@@ -103,3 +104,16 @@ def test_board_filters_departed_and_sorts_by_best_estimate():
     live = rows[2]
     assert (live.status, live.mtd_ts, live.predicted_ts, live.minutes_away) == ("live", now + 900, now + 180, 15)
     assert rows[1].status == "scheduled" and rows[1].mtd_ts is None and rows[1].best_ts == now + 360
+
+
+def test_visit_uses_sign_shown_at_that_stop(conn):
+    seed(conn)
+    conn.execute("UPDATE stop_times SET stop_headsign='North to Transit Plaza' "
+                 "WHERE trip_id='RUNS' AND stop_sequence=1")
+    conn.commit()
+    t = gtfs_to_epoch(SD, 18 * 3600)
+    (v,) = scheduled_visits(conn, ["IT:1"], t - 60, t + 60)
+    assert v.headsign == "North to Transit Plaza"          # mid-trip sign wins
+    conn.execute("UPDATE stop_times SET stop_headsign=NULL")
+    (v,) = scheduled_visits(conn, ["IT:1"], t - 60, t + 60)
+    assert v.headsign == "North"                            # falls back to the trip's sign

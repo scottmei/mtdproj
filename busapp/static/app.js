@@ -89,7 +89,9 @@ function renderRow(a) {
     el("td", {},
       el("span", { class: "dest" }, a.headsign || ""),
       canceled ? el("span", { class: "badge" }, "CANCELED") : null,
-      el("span", { class: "platform" }, platform + (a.vehicle_id ? ` · bus ${a.vehicle_id}` : ""))),
+      // "South Side" is where you board (eastbound buses stop on the south side), not the
+      // direction of travel; say so, or it reads as contradicting "East to ..."
+      el("span", { class: "platform" }, `Boards at ${platform}` + (a.vehicle_id ? ` · bus ${a.vehicle_id}` : ""))),
     el("td", { class: "num" }, el("span", { class: "time" }, hhmm(a.scheduled_ts))),
     deltaCell(a.mtd_ts, a.scheduled_ts),
     deltaCell(a.predicted_ts, a.scheduled_ts, modelNote),

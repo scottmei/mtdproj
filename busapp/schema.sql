@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS stop_times (
     stop_id       TEXT    NOT NULL,
     arrival_s     INTEGER NOT NULL,  -- seconds since service-day "midnight" (may exceed 86400)
     departure_s   INTEGER NOT NULL,
+    stop_headsign TEXT,              -- sign shown at this stop if MTD changes it mid-trip (7% of stop times)
     PRIMARY KEY (trip_id, stop_sequence)
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS ix_stop_times_stop ON stop_times(stop_id);
