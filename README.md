@@ -51,8 +51,15 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
   - *Has the bus left?* If the trip is in the feed but our stop isn't, yes.
   - *When did it actually leave?* The last time MTD predicted for the stop, just before it disappeared,
     capped at the time we noticed. This is our ground truth.
-- **Stops sometimes reappear.** A trip's remaining-stop list can move *backwards*. The collector retracts
-  observations for stops that come back, so a premature record doesn't stick.
+- **Stops sometimes reappear.** A trip's remaining-stop list can move *backwards*, sometimes after the whole
+  trip has dropped out of the feed for a while (up to 53 minutes observed). The collector remembers recorded
+  stops for an hour after a trip was last listed, and retracts any that come back.
+- **MTD sometimes clears a trip in bulk.** Dozens of remaining stops, kilometres apart, get the same
+  timestamp and drop out together. Taken at face value, that looks like buses leaving up to an hour early (or
+  late). A bus can't be in two places at once, so when 11 or more stops of one trip "depart" in the same
+  second, the collector rejects them. Before these two fixes (2026-09-29), such false departures were 2% of
+  the data and made Ruby look 4 minutes *early* on average; it actually runs about 2 minutes late.
+  `scripts\remove_false_departures.py` finds and removes them from existing data (dry run by default).
 - **Trips that haven't started are in the feed too.** Their first stop is sequence 1.
 - **Destination signs change mid-trip.** 7% of stop times carry their own `stop_headsign`, different
   from the trip's. At Illinois Terminal, a Red trip signed "U to Illinois Terminal - Urbana Meijer"
@@ -99,7 +106,7 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 89 tests
+python -m pytest                    # 95 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks

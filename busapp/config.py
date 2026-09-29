@@ -27,6 +27,8 @@ HORIZONS_MIN = (2, 5, 10, 15, 20, 30)   # MTD prediction snapshots, minutes befo
 MAX_ABS_DELAY_S = 3600                   # observations beyond this are treated as bad data
 MAX_POLL_GAP_S = 90                      # observations after a longer collector gap are low quality
 VANISHED_TRIP_SLACK_S = 60
+RETRACT_MEMORY_S = 3600      # MTD re-lists a stop up to ~53 min after dropping it; remember that long
+COLLAPSE_MIN_STOPS = 11      # this many stops of one trip "departing" in the same second = MTD cleared the trip
 
 # Prediction model
 MIN_SAMPLES = 5

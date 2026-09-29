@@ -4,7 +4,16 @@ Observed departures are inferred from how MTD's feed behaves: once a bus
 passes a stop, that stop disappears from the trip's stop_time_updates. The
 last prediction MTD made for the stop, just before it disappeared, is our
 observed departure time (capped at the poll time we noticed it was gone).
+
+Two MTD behaviours produce false departures, and both are undone here:
+- MTD sometimes drops stops (or the whole trip) and lists them again minutes
+  later. Recorded stops are remembered for RETRACT_MEMORY_S after the trip was
+  last seen, so a re-listed stop is retracted even if the trip vanished between.
+- MTD sometimes clears a trip in bulk: a dozen or more stops, kilometres apart,
+  all get the same timestamp. A bus can't be in two places at once, so
+  COLLAPSE_MIN_STOPS or more stops of one trip sharing a second are rejected.
 """
+import collections
 import logging
 import sqlite3
 import time
@@ -90,10 +99,12 @@ class Collector:
         self.prev: FeedSnapshot | None = None
         self.prev_poll_ts: int | None = None
         self.seen_horizons: set = set()
-        # (trip_id, start_date) -> stop_sequences recorded as departed this run; if MTD
-        # re-lists one of those stops, the bus hadn't really left and we retract it
-        self.observed: dict[tuple[str, str], set[int]] = {}
+        # (trip_id, start_date) -> {stop_sequence: observed_ts} recorded as departed this run;
+        # if MTD re-lists one of those stops, the bus hadn't really left and we retract it
+        self.observed: dict[tuple[str, str], dict[int, int]] = {}
+        self.last_seen: dict[tuple[str, str], int] = {}  # poll_ts a trip was last in the feed
         self.last_retracted = 0
+        self.last_collapsed = 0
         self.last_reseed_gap: int | None = None
         self.trip_info = {r["trip_id"]: (r["route_id"], r["direction_id"])
                           for r in conn.execute("SELECT trip_id, route_id, direction_id FROM trips")}
@@ -134,14 +145,16 @@ class Collector:
             self.last_reseed_gap = gap if gap is not None and gap > config.MAX_POLL_GAP_S else None
             # After a long gap (sleep, outage, repeated fetch errors) we can't tell when stops
             # dropped out, so this snapshot only re-seeds state instead of producing departures.
+            self.last_collapsed = 0
             if gap is not None and self.last_reseed_gap is None:
                 rows = self._observation_rows(infer_departures(self.prev, cur, poll_ts), gap)
+                rows = self._reject_collapses(rows)
                 before = self.conn.total_changes
                 self.conn.executemany(
                     "INSERT OR IGNORE INTO observed_departures VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
                 n_new = self.conn.total_changes - before
                 for r in rows:
-                    self.observed.setdefault((r[0], r[1]), set()).add(r[2])
+                    self.observed.setdefault((r[0], r[1]), {})[r[2]] = r[8]
             snaps = horizon_snapshots(cur, poll_ts, self.seen_horizons)
             self.conn.executemany(
                 "INSERT OR IGNORE INTO mtd_predictions VALUES (?,?,?,?,?,?)",
@@ -150,8 +163,13 @@ class Collector:
             self.conn.execute("INSERT OR REPLACE INTO polls VALUES (?,?,?,?,NULL)",
                               (poll_ts, cur.feed_ts, len(cur.trips), n_new))
         self.prev, self.prev_poll_ts = cur, poll_ts
-        self._prune_seen(cur)
+        self._prune_seen(cur, poll_ts)
         return n_new
+
+    def _delete(self, keys: list[tuple[str, str, int]]) -> None:
+        self.conn.executemany(
+            "DELETE FROM observed_departures WHERE trip_id=? AND service_date=? AND stop_sequence=?",
+            keys)
 
     def _retract_relisted(self, cur: FeedSnapshot) -> int:
         """Delete observations for stops that MTD has put back into a trip's remaining stops."""
@@ -160,19 +178,43 @@ class Collector:
             trip = cur.trips.get(key)
             if trip is None:
                 continue
-            back = seqs & trip.stops.keys()
-            if back:
-                seqs -= back
-                doomed.extend((key[0], key[1], seq) for seq in back)
-        self.conn.executemany(
-            "DELETE FROM observed_departures WHERE trip_id=? AND service_date=? AND stop_sequence=?",
-            doomed)
+            for seq in seqs.keys() & trip.stops.keys():
+                del seqs[seq]
+                doomed.append((key[0], key[1], seq))
+        self._delete(doomed)
         return len(doomed)
 
-    def _prune_seen(self, cur: FeedSnapshot) -> None:
+    def _reject_collapses(self, rows: list[tuple]) -> list[tuple]:
+        """Drop departures that share their exact second with COLLAPSE_MIN_STOPS - 1 or more
+        other stops of the same trip, counting stops recorded in earlier polls too (a bulk
+        clear can straddle two polls; those earlier rows are deleted)."""
+        batches: dict[tuple, list[tuple]] = collections.defaultdict(list)
+        for r in rows:
+            batches[(r[0], r[1], r[8])].append(r)  # trip_id, service_date, observed_ts
+        keep, doomed = [], []
+        for (trip_id, sd, ts), batch in batches.items():
+            recorded = self.observed.get((trip_id, sd), {})
+            earlier = [seq for seq, obs in recorded.items() if obs == ts]
+            if len(batch) + len(earlier) >= config.COLLAPSE_MIN_STOPS:
+                for seq in earlier:
+                    del recorded[seq]
+                doomed.extend((trip_id, sd, seq) for seq in earlier)
+                self.last_collapsed += len(batch) + len(earlier)
+            else:
+                keep.extend(batch)
+        self._delete(doomed)
+        return keep
+
+    def _prune_seen(self, cur: FeedSnapshot, poll_ts: int) -> None:
         live = {(t.trip_id, t.start_date) for t in cur.trips.values()}
+        for key in live:
+            self.last_seen[key] = poll_ts
         self.seen_horizons = {k for k in self.seen_horizons if (k[0], k[1]) in live}
-        self.observed = {k: v for k, v in self.observed.items() if k in live}
+        # a trip missing from the feed may come back with stops we recorded; keep them
+        # retractable for RETRACT_MEMORY_S after the trip was last listed
+        cutoff = poll_ts - config.RETRACT_MEMORY_S
+        self.last_seen = {k: t for k, t in self.last_seen.items() if t >= cutoff}
+        self.observed = {k: v for k, v in self.observed.items() if k in self.last_seen}
 
     def record_error(self, poll_ts: int, err: Exception) -> None:
         with self.conn:
@@ -193,8 +235,10 @@ class Collector:
                         if self.last_reseed_gap:
                             log.warning("resumed after %ds without a successful poll; re-seeded state",
                                         self.last_reseed_gap)
-                        log.info("poll ok: %d trips, %d new observations%s", len(snap.trips), n,
-                                 f", {self.last_retracted} retracted" if self.last_retracted else "")
+                        log.info("poll ok: %d trips, %d new observations%s%s", len(snap.trips), n,
+                                 f", {self.last_retracted} retracted" if self.last_retracted else "",
+                                 f", {self.last_collapsed} rejected as a bulk clear"
+                                 if self.last_collapsed else "")
                     except Exception as e:  # keep collecting through network/feed hiccups
                         log.warning("poll failed: %s", e)
                         self.record_error(poll_ts, e)

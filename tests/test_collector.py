@@ -1,3 +1,4 @@
+from busapp import config
 from busapp.collector import Collector, horizon_snapshots, infer_departures
 from busapp.realtime import FeedSnapshot, StopRT, TripRT
 from busapp.timeutil import gtfs_to_epoch
@@ -148,3 +149,80 @@ def test_collector_records_trips_timetabled_after_midnight(conn):
     row = conn.execute("SELECT service_date, delay_s FROM observed_departures").fetchone()
     assert tuple(row) == (SD, 90)
     assert {r[0] for r in conn.execute("SELECT service_date FROM mtd_predictions")} == {SD}
+
+
+def seed_long_trip(conn, n=15):
+    conn.execute("INSERT INTO trips VALUES ('L','GREEN','S1',0,'East','B1')")
+    for seq in range(1, n + 1):
+        secs = 18 * 3600 + seq * 120
+        conn.execute("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                     "VALUES ('L',?,?,?,?)", (seq, f"S{seq}", secs, secs))
+    return gtfs_to_epoch(SD, 18 * 3600)
+
+
+def long_trip(stops):
+    return snap(trip("L", [(seq, f"S{seq}", ts) for seq, ts in stops], route="GREEN"))
+
+
+def honest(base, seqs):
+    return [(s, base + s * 120 + 30) for s in seqs]  # every stop 30 s late
+
+
+def bulk_clear(conn, n_cleared):
+    """MTD sets the first n stops to one instant, then drops them: 'departures' in the same second."""
+    base = seed_long_trip(conn)
+    c = Collector(conn)
+    c.process(long_trip(honest(base, range(1, 16))), base)
+    now = base + 20
+    c.process(long_trip([(s, now) for s in range(1, n_cleared + 1)] + honest(base, range(n_cleared + 1, 16))), now)
+    c.process(long_trip(honest(base, range(n_cleared + 1, 16))), now + 20)
+    return c
+
+
+def test_bulk_clear_of_eleven_stops_is_rejected(conn):
+    c = bulk_clear(conn, 11)
+    assert c.last_collapsed == 11
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 0
+
+
+def test_ten_stops_sharing_a_second_are_kept(conn):
+    bulk_clear(conn, 10)
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 10
+
+
+def test_bulk_clear_straddling_two_polls_is_rejected(conn):
+    base = seed_long_trip(conn)
+    c = Collector(conn)
+    c.process(long_trip(honest(base, range(1, 16))), base)
+    now = base + 20
+    c.process(long_trip([(s, now) for s in range(1, 13)] + honest(base, range(13, 16))), now)
+    c.process(long_trip([(s, now) for s in range(7, 13)] + honest(base, range(13, 16))), now + 20)
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 6  # not yet 11
+    c.process(long_trip(honest(base, range(13, 16))), now + 40)  # 6 more at the same second: 12
+    assert c.last_collapsed == 12
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 0
+
+
+def test_stops_relisted_after_trip_vanished_are_retracted(conn):
+    seed_static(conn)
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 18 * 3600)
+    full = [(1, "A", base + 60), (2, "B", base + 360), (3, "C", base + 660)]
+    c.process(snap(trip("T1", full)), base)
+    c.process(snap(), base + 20)  # trip vanishes; stop 1 was due, so it is recorded
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 1
+    c.process(snap(), base + 40)
+    c.process(snap(trip("T1", full)), base + 60)  # ...and comes back with stop 1 still to come
+    assert c.last_retracted == 1
+    assert conn.execute("SELECT COUNT(*) FROM observed_departures").fetchone()[0] == 0
+
+
+def test_retraction_memory_expires(conn):
+    seed_static(conn)
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 18 * 3600)
+    c.process(snap(trip("T1", [(1, "A", base + 60), (2, "B", base + 360)])), base)
+    c.process(snap(), base + 80)
+    assert ("T1", SD) in c.observed
+    c.process(snap(), base + 80 + config.RETRACT_MEMORY_S + 20)
+    assert c.observed == {}
