@@ -9,13 +9,15 @@ history never carries over between day types. The coarser levels group by
 *line* (the route's long name, e.g. 'Green'), which does. Because each
 route_id runs on only one day type, grouping by route_id already separates
 weekday/Saturday/Sunday, so no level adds day_type on top.
+
+Averages use history up to the start of the request's service day, computed once per day
+(base.DailyStats).
 """
 import sqlite3
-from collections import OrderedDict
 
 from .. import config
 from ..timeutil import local_dt
-from .base import Prediction, PredictionRequest
+from .base import DailyStats, Prediction, PredictionRequest
 
 Level = tuple[str, tuple[str, ...]]
 
@@ -37,7 +39,6 @@ _SQL_COLUMN = {
     "hour_local": "o.hour_local",
     "line": "r.long_name",
 }
-CACHE_BUCKET_S = 600  # aggregates are recomputed at most every 10 minutes of `now_ts`
 
 
 def key_values(req: PredictionRequest, line_of: dict[str, str]) -> dict:
@@ -51,31 +52,22 @@ def key_values(req: PredictionRequest, line_of: dict[str, str]) -> dict:
     }
 
 
-class AverageDelayPredictor:
+class AverageDelayPredictor(DailyStats):
     name = "avg_delay"
 
     def __init__(self, conn: sqlite3.Connection, min_samples: int = config.MIN_SAMPLES,
                  lookback_days: int = config.LOOKBACK_DAYS, levels: tuple[Level, ...] = LEVELS,
                  cache_size: int = 8):
+        super().__init__(cache_size)
         self.conn = conn
         self.min_samples = min_samples
         self.lookback_s = lookback_days * 86400
         self.levels = levels
-        self.cache_size = cache_size  # each entry holds every group's stats (~tens of MB)
         self.line_of = dict(conn.execute("SELECT route_id, long_name FROM routes").fetchall())
-        self._cache: OrderedDict[int, list[dict]] = OrderedDict()  # cutoff -> per-level averages
 
-    def _aggregates(self, level: int, cutoff: int) -> dict[tuple, tuple[float, int]]:
-        """{bucket key: (mean delay, n)} using observations in [cutoff - lookback, cutoff)."""
-        if cutoff not in self._cache:
-            self._cache[cutoff] = self._all_levels(cutoff)
-            while len(self._cache) > self.cache_size:
-                self._cache.popitem(last=False)
-        self._cache.move_to_end(cutoff)
-        return self._cache[cutoff][level]
-
-    def _all_levels(self, cutoff: int) -> list[dict[tuple, tuple[float, int]]]:
-        """Every level's averages from ONE grouped query at the finest grain.
+    def _compute(self, cutoff: int) -> list[dict[tuple, tuple[float, int]]]:
+        """Per level {bucket key: (mean delay, n)} from observations in [cutoff - lookback, cutoff),
+        all from ONE grouped query at the finest grain.
 
         Sums and counts are additive, so coarser levels are exact roll-ups of the finest
         one: one table scan instead of one per level (2.5 s -> 1.4 s at 100k rows).
@@ -107,11 +99,11 @@ class AverageDelayPredictor:
     def predict_many(self, reqs: list[PredictionRequest]) -> list[Prediction]:
         out = []
         for req in reqs:
-            cutoff = req.now_ts - req.now_ts % CACHE_BUCKET_S
+            levels = self.stats(self.cutoff_for(req.now_ts))
             vals = key_values(req, self.line_of)  # once per request, not once per level
             pred = None
-            for i, (label, cols) in enumerate(self.levels):
-                hit = self._aggregates(i, cutoff).get(tuple(vals[c] for c in cols))
+            for (label, cols), groups in zip(self.levels, levels):
+                hit = groups.get(tuple(vals[c] for c in cols))
                 if hit and hit[1] >= self.min_samples:
                     mean, n = hit
                     pred = Prediction(req.scheduled_ts + round(mean), mean, self.name, label, n)

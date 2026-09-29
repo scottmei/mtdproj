@@ -129,7 +129,7 @@ def test_one_pass_rollup_matches_direct_group_by(conn):
                 secs=rng.choice([8, 12, 18]) * 3600, day=rng.choice(["weekday", "saturday"]), start=i)
     p = AverageDelayPredictor(conn)
     cutoff = gtfs_to_epoch(FRI, 0)
-    for (label, names), agg in zip(p.levels, p._all_levels(cutoff)):
+    for (label, names), agg in zip(p.levels, p._compute(cutoff)):
         cols = ", ".join(_SQL_COLUMN[c] for c in names)
         join = "JOIN routes r ON r.route_id = o.route_id" if "line" in names else ""
         direct = {tuple(r[:len(names)]): (r[-2], r[-1]) for r in conn.execute(
@@ -139,3 +139,14 @@ def test_one_pass_rollup_matches_direct_group_by(conn):
         assert direct.keys() == agg.keys(), label
         for k, (mean, n) in direct.items():
             assert agg[k][1] == n and math.isclose(agg[k][0], mean), (label, k)
+
+
+def test_uses_only_history_before_the_service_day_and_warms(conn):
+    add_obs(conn, 5, 300, date=FRI, secs=8 * 3600)   # this morning: not used until tomorrow
+    evening = req(date=FRI, now=gtfs_to_epoch(FRI, H18))
+    p = AverageDelayPredictor(conn, cache_size=2)
+    assert p.predict_many([evening])[0].level == "no data"
+    tomorrow = req(date="20260926", now=gtfs_to_epoch("20260926", H18))
+    assert p.predict_many([tomorrow])[0].delay_s == 300
+    p.warm(now_ts=gtfs_to_epoch("20260927", H18))    # background thread computes ahead of requests
+    assert len(p._cache) == 2

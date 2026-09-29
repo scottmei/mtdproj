@@ -126,28 +126,33 @@ replace `gtfs\` and re-run `load_gtfs.py`. Historical tables are kept.
 | `mtd_predictions` | ~6× observations | MTD's estimate as it stood about 2/5/10/15/20/30 min before arrival |
 | `polls` | 4,320 | Collector health; errors are logged, not fatal |
 
-The model's hierarchical average is one grouped query per fallback level, with results cached for
-10 minutes:
+The model's hierarchical average comes from one grouped query at the finest grain. Sums and counts
+add up, so every coarser level is rolled up from its result in Python:
 
 ```sql
-SELECT route_id, direction_id, stop_id, hour_local,
-       AVG(delay_s) AS mean_delay, COUNT(*) AS n
-FROM observed_departures
-WHERE scheduled_ts >= :cutoff - 28*86400 AND scheduled_ts < :cutoff  -- no look-ahead
-  AND poll_gap_s <= 90                                               -- drop low-quality rows
-GROUP BY route_id, direction_id, stop_id, hour_local;
+SELECT o.route_id, o.direction_id, o.stop_id, o.hour_local, r.long_name AS line,
+       SUM(o.delay_s), COUNT(*)
+FROM observed_departures o LEFT JOIN routes r ON r.route_id = o.route_id
+WHERE o.scheduled_ts >= :cutoff - 28*86400 AND o.scheduled_ts < :cutoff  -- no look-ahead
+  AND o.poll_gap_s <= 90                                                 -- drop low-quality rows
+GROUP BY 1, 2, 3, 4, 5;
 ```
+
+`:cutoff` is the start of the current service day. Every model computes its statistics once per
+service day, in a background thread (`predictors/base.py: DailyStats`), so a stop lookup never waits
+on this query. The backtest uses the same cutoff, so the live models are exactly the ones evaluated.
 
 The levels, from most to least specific, are:
 
 1. route + direction + stop + hour
-2. route + direction + hour
-3. line + direction + stop + hour
-4. route + hour
-5. line + direction + hour
-6. route
-7. line
-8. no data (predict the schedule)
+2. line + direction + stop + hour
+3. route + direction + hour
+4. line + direction + hour
+5. route + hour
+6. line + hour
+7. route
+8. line
+9. no data (predict the schedule)
 
 The first level with at least 5 samples wins, and the UI shows which level and `n` were used.
 The route levels need no day-type column: each `route_id` runs on only one day type (see below).
