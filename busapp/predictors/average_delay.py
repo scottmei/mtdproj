@@ -38,15 +38,29 @@ _SQL_COLUMN = {
 CACHE_BUCKET_S = 600  # aggregates are recomputed at most every 10 minutes of `now_ts`
 
 
+def key_values(req: PredictionRequest, line_of: dict[str, str]) -> dict:
+    """Every grouping column's value for a request (shared by the historical models)."""
+    return {
+        "route_id": req.route_id,
+        "direction_id": req.direction_id,
+        "stop_id": req.stop_id,
+        "hour_local": local_dt(req.scheduled_ts).hour,
+        "day_type": day_type(req.service_date),
+        "line": line_of.get(req.route_id),
+    }
+
+
 class AverageDelayPredictor:
     name = "avg_delay"
 
     def __init__(self, conn: sqlite3.Connection, min_samples: int = config.MIN_SAMPLES,
-                 lookback_days: int = config.LOOKBACK_DAYS, levels: tuple[Level, ...] = LEVELS):
+                 lookback_days: int = config.LOOKBACK_DAYS, levels: tuple[Level, ...] = LEVELS,
+                 cache_size: int = 8):
         self.conn = conn
         self.min_samples = min_samples
         self.lookback_s = lookback_days * 86400
         self.levels = levels
+        self.cache_size = cache_size  # each entry holds every group's stats (~tens of MB)
         self.line_of = dict(conn.execute("SELECT route_id, long_name FROM routes").fetchall())
         self._cache: OrderedDict[int, list[dict]] = OrderedDict()  # cutoff -> per-level averages
 
@@ -54,7 +68,7 @@ class AverageDelayPredictor:
         """{bucket key: (mean delay, n)} using observations in [cutoff - lookback, cutoff)."""
         if cutoff not in self._cache:
             self._cache[cutoff] = self._all_levels(cutoff)
-            while len(self._cache) > 16:
+            while len(self._cache) > self.cache_size:
                 self._cache.popitem(last=False)
         self._cache.move_to_end(cutoff)
         return self._cache[cutoff][level]
@@ -89,21 +103,11 @@ class AverageDelayPredictor:
             levels.append({k: (s / n, n) for k, (s, n) in sums.items()})
         return levels
 
-    def _key_values(self, req: PredictionRequest) -> dict:
-        return {
-            "route_id": req.route_id,
-            "direction_id": req.direction_id,
-            "stop_id": req.stop_id,
-            "hour_local": local_dt(req.scheduled_ts).hour,
-            "day_type": day_type(req.service_date),
-            "line": self.line_of.get(req.route_id),
-        }
-
     def predict_many(self, reqs: list[PredictionRequest]) -> list[Prediction]:
         out = []
         for req in reqs:
             cutoff = req.now_ts - req.now_ts % CACHE_BUCKET_S
-            vals = self._key_values(req)  # once per request, not once per level
+            vals = key_values(req, self.line_of)  # once per request, not once per level
             pred = None
             for i, (label, cols) in enumerate(self.levels):
                 hit = self._aggregates(i, cutoff).get(tuple(vals[c] for c in cols))

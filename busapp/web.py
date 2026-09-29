@@ -1,5 +1,6 @@
 """FastAPI app: stop search, arrivals board, health. Serves the single-page UI from /static."""
 import hashlib
+import logging
 import re
 import threading
 import time
@@ -18,6 +19,7 @@ from .mtd_rest import MtdRestClient
 from .predictors import DEFAULT_PREDICTOR, PREDICTORS, get_predictor
 from .stop_search import search_stops
 
+log = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).with_name("static")
 _ASSET_REF = re.compile(r'(/static/[\w.-]+\.(?:js|css))"')
 
@@ -38,6 +40,19 @@ def render_page(name: str) -> str:
     return _ASSET_REF.sub(lambda m: f'{m[1]}?v={asset_version(m[1].rsplit("/", 1)[1])}"', html)
 
 
+def warm_predictors(predictors: dict, interval_s: int = 600) -> None:
+    """Run forever: let models that precompute daily stats (shrunk_median) do so before the
+    first request of the day instead of during it."""
+    while True:
+        for name, p in predictors.items():
+            if hasattr(p, "warm"):
+                try:
+                    p.warm()
+                except Exception as e:
+                    log.warning("Warming %s failed: %s", name, e)
+        time.sleep(interval_s)
+
+
 def create_app(db_path=None, rest: MtdRestClient | None = None,
                rt_cache: RealtimeCache | None = None, background: bool = True) -> FastAPI:
     """`background=False` skips the keep-warm threads (tests)."""
@@ -46,7 +61,9 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
     conn = db.connect(db_path)
     db.init_schema(conn)
     lock = threading.Lock()  # one shared SQLite connection; endpoints run in a threadpool
-    predictors = {name: get_predictor(name, conn) for name in PREDICTORS}
+    # live models: own connections (a warm-up thread may compute while requests read) and a
+    # small cache, since the live page only ever needs the latest cutoff
+    predictors = {name: get_predictor(name, db.connect(db_path), cache_size=2) for name in PREDICTORS}
     rest = rest if rest is not None else MtdRestClient()
     rt_cache = rt_cache or RealtimeCache()
     scores = ScoreCache(db_path)  # own connection: scoring never blocks the arrivals board
@@ -54,6 +71,8 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
         if rest.enabled:
             threading.Thread(target=rest.keep_warm, name="mtd-rest-warm", daemon=True).start()
         threading.Thread(target=scores.keep_warm, name="score-warm", daemon=True).start()
+        threading.Thread(target=warm_predictors, args=(predictors,), name="model-warm",
+                         daemon=True).start()
 
     @app.middleware("http")
     async def revalidate_assets(request, call_next):

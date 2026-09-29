@@ -95,7 +95,7 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 79 tests
+python -m pytest                    # 85 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks
@@ -180,6 +180,31 @@ GROUP BY o.trip_id, o.service_date, o.stop_sequence;
 
 Groups below a minimum sample size are hidden, so a stop with six buses can't top the list by chance.
 Clicking a stop opens its arrivals board.
+
+## Models
+
+Pick a model from the dropdown on the arrivals page, or with `?model=` on any API endpoint.
+
+- **`avg_delay`** (default): at the first fallback level with at least 5 samples, the mean delay.
+- **`shrunk_median`**: medians, because delays are right-skewed with occasional implausible outliers.
+  Instead of an all-or-nothing sample cutoff, every level contributes in proportion to its data
+  (partial pooling):
+
+  ```
+  estimate = median of all history
+  for each level, coarsest -> most specific, with n observations in the request's group:
+      estimate = (n * group median + k * estimate) / (n + k)          # k = 20
+  ```
+
+  `k` is how many observations the coarser estimate is worth. A group needs k observations of its own
+  before its median counts for half (n=5 gives 20%, n=100 gives 83%). Stats are computed once per
+  service day from history up to its start, which is exactly what the backtest scores.
+
+  Walk-forward comparison on the same 81,738 departures (Sat-Mon, 2026-09-26 to 09-28): MAE
+  203 s -> 192 s; Sunday 202 -> 172 s, Monday 190 -> 179 s; within 2 minutes 43.5% -> 46.6%. A
+  comparison of mean, median, trimmed, winsorized and shrunk variants, with bootstrap CIs over bus
+  trips, found shrinkage gave most of the gain. The median alone was not significantly better.
+  `k` was not tuned; tune it on later days.
 
 ## Adding a model
 
