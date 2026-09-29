@@ -125,10 +125,11 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
             raise HTTPException(400, f"Unknown dimension {by!r}; choose from {sorted(DIMENSIONS)}")
         if horizon not in config.HORIZONS_MIN:
             raise HTTPException(400, f"horizon must be one of {list(config.HORIZONS_MIN)}")
+        until_ts = scores.cutoff()  # scores cover complete service days before this
         scored = scored_for(model, days)
         with lock:
             res = breakdown(conn, scored, by, horizon=horizon, min_n=min_n, line=line)
-        return {"model": model, "days": days, **res}
+        return {"model": model, "days": days, "until_ts": until_ts, **res}
 
     @app.get("/api/models")
     def api_models():

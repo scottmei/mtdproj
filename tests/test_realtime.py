@@ -1,4 +1,4 @@
-﻿from google.transit import gtfs_realtime_pb2 as rt
+from google.transit import gtfs_realtime_pb2 as rt
 
 from busapp.realtime import overnight_trips, parse_trip_updates, to_service_dates
 

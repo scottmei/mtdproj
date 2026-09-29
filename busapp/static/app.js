@@ -146,7 +146,8 @@ function renderAccuracy(acc) {
   sec.replaceChildren(
     el("h2", {}, "How accurate is each estimate?"),
     el("p", { class: "muted" },
-      `Average error against ${acc.observations.toLocaleString()} observed departures (last ${acc.days} days). ` +
+      `Average error against ${acc.observations.toLocaleString()} observed departures ` +
+      `(${completeDays(acc.days, acc.until_ts)}; updated once a day). ` +
       "MTD is scored on the estimate it showed about H minutes before the bus actually came. " +
       (fair
         ? "Our model only uses data from days before the one it predicts; all three columns use the same departures."

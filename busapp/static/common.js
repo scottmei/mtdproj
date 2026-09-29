@@ -20,6 +20,14 @@ async function getJSON(url) {
   return r.json();
 }
 
+// "the 7 days before Tue, Sep 29": scores cover complete service days only
+function completeDays(days, untilTs) {
+  if (untilTs == null) return `last ${days} days`;
+  const end = new Date(untilTs * 1000).toLocaleDateString("en-US",
+    { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  return `the ${days} service day${days === 1 ? "" : "s"} before ${end}`;
+}
+
 // ---------- header stop search ----------
 (function initSearch() {
   const input = $("q"), list = $("suggest");

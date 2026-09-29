@@ -80,7 +80,7 @@ function render() {
     ? ` · ${d.groups_hidden} more hidden (fewer than ${d.min_n} departures)` : "";
   const scope = d.line ? ` on ${d.line}` : "";
   $("summary").textContent =
-    `${d.departures.toLocaleString()} observed departures${scope} in the last ${d.days} day(s) · ` +
+    `${d.departures.toLocaleString()} observed departures${scope} in ${completeDays(d.days, d.until_ts)} · ` +
     `${d.groups_shown} group(s) shown${hidden}. Accuracy columns compare against MTD's estimate ` +
     `from ${d.horizon_min} min ahead.`;
 

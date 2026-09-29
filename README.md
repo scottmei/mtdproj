@@ -35,7 +35,7 @@ one writer and many readers work at the same time). Collection keeps running whi
 | `busapp/schedule.py` | Scheduled visits to a stop across service days |
 | `busapp/predictors/` | `Predictor` interface, registry, `AverageDelayPredictor` |
 | `busapp/arrivals.py` | Merges schedule, realtime and prediction; drops buses that already left |
-| `busapp/accuracy.py` | Backtest; `ScoreCache` scores every departure in the background on its own connection |
+| `busapp/accuracy.py` | Backtest; `ScoreCache` scores complete service days once a day (at 1 AM), in the background on its own connection |
 | `busapp/breakdown.py` | Lateness and accuracy by line, stop, hour, day type or route pattern |
 | `busapp/coverage.py` | Collector gaps, weighted by how much service is actually observable |
 | `busapp/web.py`, `busapp/static/` | FastAPI app and single-page UI |
@@ -183,6 +183,12 @@ FROM observed_departures o
 LEFT JOIN mtd_predictions p USING (trip_id, service_date, stop_sequence)
 GROUP BY o.trip_id, o.service_date, o.stop_sequence;
 ```
+
+The app scores **complete service days only**, once a day. The models learn only from days before the
+one they predict, so a finished day's scores never change; only the set of finished days does. The
+rebuild waits until 1 AM, because the collector drops delays over an hour: by then every departure
+scheduled before midnight has either been observed or never will be. The accuracy panel and the
+Insights page both say which days they cover.
 
 ## Insights page
 
