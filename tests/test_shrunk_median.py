@@ -36,7 +36,7 @@ def test_chain_blends_every_level_and_reports_most_specific(conn):
     add_obs(conn, 10, 200, route="TEAL", stop="A:1")                    # this stop
     add_obs(conn, 30, 100, route="TEAL SATURDAY", stop="B:1")           # same line elsewhere
     p = ShrunkMedianPredictor(conn, k=20).predict_many([req(route="TEAL", stop="A:1")])[0]
-    assert p.level == "route+dir+stop+hour+day (pooled)" and p.n_samples == 10
+    assert p.level == "route+dir+stop+hour (pooled)" and p.n_samples == 10
     assert 100 < p.delay_s < 200   # own data pulled toward the line's typical delay
 
 

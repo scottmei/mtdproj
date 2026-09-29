@@ -6,21 +6,23 @@ bucket has at least MIN_SAMPLES observations.
 MTD's route_id encodes the service pattern ('GREEN', 'GREEN EVENING',
 'GREEN SATURDAY', 'GREEN SUNDAY' are all different ids), so route-level
 history never carries over between day types. The coarser levels group by
-*line* (the route's long name, e.g. 'Green'), which does.
+*line* (the route's long name, e.g. 'Green'), which does. Because each
+route_id runs on only one day type, grouping by route_id already separates
+weekday/Saturday/Sunday, so no level adds day_type on top.
 """
 import sqlite3
 from collections import OrderedDict
 
 from .. import config
-from ..timeutil import day_type, local_dt
+from ..timeutil import local_dt
 from .base import Prediction, PredictionRequest
 
 Level = tuple[str, tuple[str, ...]]
 
 # (label, grouping columns) from most to least specific
 LEVELS: tuple[Level, ...] = (
-    ("route+dir+stop+hour+day", ("route_id", "direction_id", "stop_id", "hour_local", "day_type")),
-    ("route+dir+hour+day", ("route_id", "direction_id", "hour_local", "day_type")),
+    ("route+dir+stop+hour", ("route_id", "direction_id", "stop_id", "hour_local")),
+    ("route+dir+hour", ("route_id", "direction_id", "hour_local")),
     ("line+dir+stop+hour", ("line", "direction_id", "stop_id", "hour_local")),
     ("route+hour", ("route_id", "hour_local")),
     ("line+dir+hour", ("line", "direction_id", "hour_local")),
@@ -32,7 +34,6 @@ _SQL_COLUMN = {
     "direction_id": "o.direction_id",
     "stop_id": "o.stop_id",
     "hour_local": "o.hour_local",
-    "day_type": "o.day_type",
     "line": "r.long_name",
 }
 CACHE_BUCKET_S = 600  # aggregates are recomputed at most every 10 minutes of `now_ts`
@@ -45,7 +46,6 @@ def key_values(req: PredictionRequest, line_of: dict[str, str]) -> dict:
         "direction_id": req.direction_id,
         "stop_id": req.stop_id,
         "hour_local": local_dt(req.scheduled_ts).hour,
-        "day_type": day_type(req.service_date),
         "line": line_of.get(req.route_id),
     }
 
@@ -79,7 +79,7 @@ class AverageDelayPredictor:
         Sums and counts are additive, so coarser levels are exact roll-ups of the finest
         one: one table scan instead of one per level (2.5 s -> 1.4 s at 100k rows).
         """
-        grain = tuple(_SQL_COLUMN)  # route_id, direction_id, stop_id, hour_local, day_type, line
+        grain = tuple(_SQL_COLUMN)  # route_id, direction_id, stop_id, hour_local, line
         cols = ", ".join(_SQL_COLUMN[c] for c in grain)
         rows = self.conn.execute(
             f"""SELECT {cols}, SUM(o.delay_s), COUNT(*)

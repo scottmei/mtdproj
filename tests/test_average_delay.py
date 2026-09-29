@@ -29,20 +29,20 @@ def predict(conn, r):
 def test_most_specific_level(conn):
     add_obs(conn, 5, 120)
     p = predict(conn, req())
-    assert (p.level, p.n_samples, p.delay_s) == ("route+dir+stop+hour+day", 5, 120)
+    assert (p.level, p.n_samples, p.delay_s) == ("route+dir+stop+hour", 5, 120)
     assert p.predicted_ts == req().scheduled_ts + 120
 
 
-def test_falls_back_to_route_dir_hour_day_when_stop_is_sparse(conn):
+def test_falls_back_to_route_dir_hour_when_stop_is_sparse(conn):
     add_obs(conn, 3, 120)                    # too few at this stop
-    add_obs(conn, 3, 60, stop="B:1")         # other stops on the route/dir/hour/day
+    add_obs(conn, 3, 60, stop="B:1")         # other stops on the route/dir/hour
     p = predict(conn, req())
-    assert p.level == "route+dir+hour+day" and p.n_samples == 6 and p.delay_s == 90
+    assert p.level == "route+dir+hour" and p.n_samples == 6 and p.delay_s == 90
 
 
-def test_falls_back_to_route_hour_across_day_types(conn):
-    add_obs(conn, 5, 300, date="20260919", day="saturday")  # Saturday data only
-    p = predict(conn, req(date=FRI))
+def test_falls_back_to_route_hour_across_directions(conn):
+    add_obs(conn, 5, 300, direction=1)       # other direction only
+    p = predict(conn, req())
     assert p.level == "route+hour" and p.delay_s == 300
 
 
@@ -111,7 +111,7 @@ def test_route_level_still_preferred_when_available(conn):
     add_obs(conn, 5, 999, route="TEAL", date="20260919", day="saturday")    # line data
     add_obs(conn, 5, 60, route="TEAL SATURDAY", date="20260919", day="saturday")
     p = predict(conn, req(route="TEAL SATURDAY", date=SAT))
-    assert p.level == "route+dir+stop+hour+day" and p.delay_s == 60
+    assert p.level == "route+dir+stop+hour" and p.delay_s == 60
 
 
 def test_one_pass_rollup_matches_direct_group_by(conn):

@@ -116,15 +116,16 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
     @app.get("/api/breakdown")
     def api_breakdown(by: str = "line", model: str = DEFAULT_PREDICTOR,
                       days: int = Query(7, ge=1, le=60), horizon: int = 10,
-                      min_n: int = Query(30, ge=1)):
-        """Lateness and accuracy grouped by line, stop, hour, day_type or route."""
+                      min_n: int = Query(30, ge=1), line: str | None = None):
+        """Lateness and accuracy grouped by line, stop, hour, day_type, day_of_week or route,
+        optionally restricted to one line."""
         if by not in DIMENSIONS:
             raise HTTPException(400, f"Unknown dimension {by!r}; choose from {sorted(DIMENSIONS)}")
         if horizon not in config.HORIZONS_MIN:
             raise HTTPException(400, f"horizon must be one of {list(config.HORIZONS_MIN)}")
         scored = scored_for(model, days)
         with lock:
-            res = breakdown(conn, scored, by, horizon=horizon, min_n=min_n)
+            res = breakdown(conn, scored, by, horizon=horizon, min_n=min_n, line=line)
         return {"model": model, "days": days, **res}
 
     @app.get("/api/models")

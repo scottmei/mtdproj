@@ -1,7 +1,7 @@
 """Where and when are buses late, and how accurate is each estimate there?
 
-Groups the backtest's scored departures by line, stop, hour, day type or
-route pattern. Per group:
+Groups the backtest's scored departures by line, stop, hour, day type, day of
+week or route pattern, optionally for one line only. Per group:
 
 - lateness: mean and median delay, share >5 min late / >1 min early, and a
   95% confidence interval on the mean clustered by bus trip. A late bus is
@@ -15,11 +15,19 @@ import sqlite3
 import statistics
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 
 from .accuracy import Scored
 from .schedule import stop_group_names
+from .timeutil import parse_date
 
 DAY_LABELS = {"weekday": "Weekday", "saturday": "Saturday", "sunday": "Sunday"}
+DOW_LABELS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
+@lru_cache(maxsize=512)
+def _weekday(service_date: str) -> int:
+    return parse_date(service_date).weekday()
 
 
 def _hour_label(h: int) -> str:
@@ -28,13 +36,20 @@ def _hour_label(h: int) -> str:
 
 # dimension -> (row -> (sort key, label, color))
 DIMENSIONS = {
-    "line": lambda r, names: (r["line"] or r["route_id"], r["line"] or r["route_id"], r["line_color"]),
+    "line": lambda r, names: (_line(r), _line(r), r["line_color"]),
     "route": lambda r, names: (r["route_id"], r["route_id"], r["line_color"]),
     "stop": lambda r, names: (r["base_id"], names.get(r["base_id"], r["base_id"]), None),
     "hour": lambda r, names: (f"{r['hour_local']:02d}", _hour_label(r["hour_local"]), None),
     "day_type": lambda r, names: (r["day_type"], DAY_LABELS.get(r["day_type"], r["day_type"]), None),
+    # the service date's weekday, so a 00:30 trip on Friday night's schedule counts as Friday
+    "day_of_week": lambda r, names: (str(_weekday(r["service_date"])),
+                                     DOW_LABELS[_weekday(r["service_date"])], None),
 }
-NATURAL_ORDER = {"hour", "day_type"}  # sorted by key rather than by lateness
+NATURAL_ORDER = {"hour", "day_type", "day_of_week"}  # sorted by key rather than by lateness
+
+
+def _line(r) -> str:
+    return r["line"] or r["route_id"]
 
 
 @dataclass
@@ -49,6 +64,7 @@ class GroupStats:
     pct_late_5min: float
     pct_early_1min: float
     trips: int
+    service_days: int         # distinct service dates: with few, a group mostly reflects those days
     scored_n: int             # departures with an MTD snapshot at the horizon and model history
     schedule_mae_s: float | None
     mtd_mae_s: float | None
@@ -91,6 +107,7 @@ def summarize(group: list[Scored], key: str, label: str, color: str | None,
         pct_late_5min=round(100 * sum(d > 300 for d in delays) / n, 1),
         pct_early_1min=round(100 * sum(d < -60 for d in delays) / n, 1),
         trips=len(set(trips)),
+        service_days=len({d for _, d in trips}),
         scored_n=len(fair),
         schedule_mae_s=_mae([r["scheduled_ts"] - r["observed_ts"] for r, _ in fair]),
         mtd_mae_s=_mae([r[f"mtd_{horizon}"] - r["observed_ts"] for r, _ in fair]),
@@ -99,9 +116,12 @@ def summarize(group: list[Scored], key: str, label: str, color: str | None,
 
 
 def breakdown(conn: sqlite3.Connection, scored: list[Scored], by: str, horizon: int = 10,
-              min_n: int = 30) -> dict:
+              min_n: int = 30, line: str | None = None) -> dict:
     if by not in DIMENSIONS:
         raise ValueError(f"Unknown dimension {by!r}; choose from {sorted(DIMENSIONS)}")
+    lines = sorted({_line(r) for r, _ in scored})
+    if line:
+        scored = [(r, p) for r, p in scored if _line(r) == line]
     names = stop_group_names(conn) if by == "stop" else {}
     groups: dict[str, list[Scored]] = defaultdict(list)
     meta: dict[str, tuple[str, str | None]] = {}
@@ -117,6 +137,8 @@ def breakdown(conn: sqlite3.Connection, scored: list[Scored], by: str, horizon: 
         kept.sort(key=lambda s: s.mean_delay_s, reverse=True)
     return {
         "by": by,
+        "line": line or None,
+        "lines": lines,               # every line in the period, for the filter
         "horizon_min": horizon,
         "min_n": min_n,
         "departures": len(scored),

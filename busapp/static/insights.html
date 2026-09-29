@@ -29,7 +29,7 @@
 
   <main>
     <h2 class="page-title">Where and when are buses late?</h2>
-    <p class="page-sub muted">Lateness by line, stop, hour and day, and whose estimate is closest: the schedule, MTD's live time, or our model.</p>
+    <p class="page-sub muted">Lateness by line, stop, hour and day of week, and whose estimate is closest: the schedule, MTD's live time, or our model.</p>
     <form id="filters" class="filters" aria-label="Breakdown filters">
       <label>Period
         <select id="days">
@@ -40,11 +40,15 @@
           <option value="28">Last 28 days</option>
         </select>
       </label>
+      <label>Line
+        <select id="line"><option value="">All lines</option></select>
+      </label>
       <div class="segmented" role="radiogroup" aria-label="Group by" id="by">
         <button type="button" role="radio" data-by="line" aria-checked="true">Line</button>
         <button type="button" role="radio" data-by="stop" aria-checked="false">Stop</button>
         <button type="button" role="radio" data-by="hour" aria-checked="false">Hour</button>
-        <button type="button" role="radio" data-by="day_type" aria-checked="false">Day</button>
+        <button type="button" role="radio" data-by="day_type" aria-checked="false">Day type</button>
+        <button type="button" role="radio" data-by="day_of_week" aria-checked="false">Day of week</button>
         <button type="button" role="radio" data-by="route" aria-checked="false">Route pattern</button>
       </div>
       <label>Min. departures <input id="min-n" type="number" min="1" step="10" value="100"></label>

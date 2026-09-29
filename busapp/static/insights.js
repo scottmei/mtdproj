@@ -4,7 +4,7 @@
 const state = {
   by: "line",
   data: null,
-  sortKey: null,     // null = server order (lateness, or natural order for hour/day)
+  sortKey: null,     // null = server order (lateness, or natural order for hour/day/day of week)
   sortDir: -1,
   seq: 0,
 };
@@ -21,12 +21,14 @@ async function load() {
     by: state.by, days: $("days").value, horizon: $("horizon").value,
     min_n: Math.max(1, +$("min-n").value || 1),
   });
+  if ($("line").value) params.set("line", $("line").value);
   try {
     const r = await fetch(`/api/breakdown?${params}`);
     if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
     const data = await r.json();
     if (seq !== state.seq) return;       // a newer request superseded this one
     state.data = data;
+    fillLines(data.lines ?? []);   // absent from an older server: keep the page working
     render();
   } catch (err) {
     console.error(err);
@@ -34,6 +36,14 @@ async function load() {
   } finally {
     if (seq === state.seq) $("wrap").classList.remove("loading");
   }
+}
+
+function fillLines(lines) {
+  const sel = $("line"), current = sel.value;
+  const opts = [...new Set([...lines, ...(current ? [current] : [])])].sort();
+  sel.replaceChildren(el("option", { value: "" }, "All lines"),
+    ...opts.map((l) => el("option", { value: l }, l)));
+  sel.value = current;
 }
 
 // ---------- rendering ----------
@@ -83,8 +93,9 @@ function render() {
   const x = scaleFor(groups);
   const hidden = d.groups_hidden
     ? ` · ${d.groups_hidden} more hidden (fewer than ${d.min_n} departures)` : "";
+  const scope = d.line ? ` on ${d.line}` : "";
   $("summary").textContent =
-    `${d.departures.toLocaleString()} observed departures in the last ${d.days} day(s) · ` +
+    `${d.departures.toLocaleString()} observed departures${scope} in the last ${d.days} day(s) · ` +
     `${d.groups_shown} group(s) shown${hidden}. Accuracy columns compare against MTD's estimate ` +
     `from ${d.horizon_min} min ahead.`;
 
@@ -126,7 +137,8 @@ function showTip(cell) {
     el("strong", {}, signedMin(g.mean_delay_s)),
     el("span", {}, g.label),
     el("span", {}, ci),
-    el("span", {}, `${g.n.toLocaleString()} departures on ${g.trips.toLocaleString()} trips`));
+    el("span", {}, `${g.n.toLocaleString()} departures on ${g.trips.toLocaleString()} trips, ` +
+      `${g.service_days} service day${g.service_days === 1 ? "" : "s"}`));
   tip.hidden = false;
   const r = cell.getBoundingClientRect();
   const w = tip.offsetWidth;
@@ -163,8 +175,14 @@ function selectBy(by) {
   state.by = by;
   state.sortKey = null;
   for (const x of $("by").querySelectorAll("button")) x.setAttribute("aria-checked", String(x === b));
-  history.replaceState(null, "", `#by=${by}`);   // the grouping is bookmarkable
+  saveHash();
   return true;
+}
+
+function saveHash() {   // the grouping and line are bookmarkable
+  const h = new URLSearchParams({ by: state.by });
+  if ($("line").value) h.set("line", $("line").value);
+  history.replaceState(null, "", `#${h}`);
 }
 
 $("by").addEventListener("click", (e) => {
@@ -172,7 +190,13 @@ $("by").addEventListener("click", (e) => {
   if (b && selectBy(b.dataset.by)) load();
 });
 for (const id of ["days", "horizon", "min-n"]) $(id).addEventListener("change", load);
+$("line").addEventListener("change", () => { saveHash(); load(); });
 $("filters").addEventListener("submit", (e) => { e.preventDefault(); load(); });
 
-selectBy(new URLSearchParams(location.hash.slice(1)).get("by") || "line") || selectBy("line");
+const initial = new URLSearchParams(location.hash.slice(1));
+if (initial.get("line")) {
+  fillLines([initial.get("line")]);
+  $("line").value = initial.get("line");
+}
+selectBy(initial.get("by") || "line") || selectBy("line");
 load();

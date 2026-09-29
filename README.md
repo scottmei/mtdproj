@@ -130,18 +130,18 @@ The model's hierarchical average is one grouped query per fallback level, with r
 10 minutes:
 
 ```sql
-SELECT route_id, direction_id, stop_id, hour_local, day_type,
+SELECT route_id, direction_id, stop_id, hour_local,
        AVG(delay_s) AS mean_delay, COUNT(*) AS n
 FROM observed_departures
 WHERE scheduled_ts >= :cutoff - 28*86400 AND scheduled_ts < :cutoff  -- no look-ahead
   AND poll_gap_s <= 90                                               -- drop low-quality rows
-GROUP BY route_id, direction_id, stop_id, hour_local, day_type;
+GROUP BY route_id, direction_id, stop_id, hour_local;
 ```
 
 The levels, from most to least specific, are:
 
-1. route + direction + stop + hour + day type
-2. route + direction + hour + day type
+1. route + direction + stop + hour
+2. route + direction + hour
 3. line + direction + stop + hour
 4. route + hour
 5. line + direction + hour
@@ -150,6 +150,7 @@ The levels, from most to least specific, are:
 8. no data (predict the schedule)
 
 The first level with at least 5 samples wins, and the UI shows which level and `n` were used.
+The route levels need no day-type column: each `route_id` runs on only one day type (see below).
 
 A **line** is the route's long name ("Green"). MTD's `route_id` encodes the service pattern: `GREEN`,
 `GREEN EVENING`, `GREEN SATURDAY` and `GREEN SUNDAY` are all different IDs. So route-level history
@@ -180,7 +181,7 @@ GROUP BY o.trip_id, o.service_date, o.stop_sequence;
 
 ## Insights page
 
-`http://localhost:8080/insights` (API: `/api/breakdown?by=line|stop|hour|day_type|route`) answers
+`http://localhost:8080/insights` (API: `/api/breakdown?by=line|stop|hour|day_type|day_of_week|route[&line=Green]`) answers
 "which line or stop is the most late, and when?" For each group it shows:
 
 - **Lateness:** average and median delay, the share of buses more than 5 min late or more than 1 min
@@ -216,6 +217,9 @@ Pick a model from the dropdown on the arrivals page, or with `?model=` on any AP
   comparison of mean, median, trimmed, winsorized and shrunk variants, with bootstrap CIs over bus
   trips, found shrinkage gave most of the gain. The median alone was not significantly better.
   `k` was not tuned; tune it on later days.
+- **`median_delay`**: `avg_delay`'s rule with medians. The first fallback level with at least 5
+  samples decides outright, with no pooling; if none qualifies, the median of all history. Uses the
+  same once-per-service-day stats as `shrunk_median`.
 
 ## Adding a model
 

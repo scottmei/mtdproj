@@ -3,11 +3,13 @@ import sqlite3
 
 from .average_delay import AverageDelayPredictor
 from .base import Prediction, PredictionRequest, Predictor
+from .median_delay import MedianDelayPredictor
 from .shrunk_median import ShrunkMedianPredictor
 
 PREDICTORS = {
     AverageDelayPredictor.name: AverageDelayPredictor,
     ShrunkMedianPredictor.name: ShrunkMedianPredictor,
+    MedianDelayPredictor.name: MedianDelayPredictor,
 }
 DEFAULT_PREDICTOR = AverageDelayPredictor.name
 

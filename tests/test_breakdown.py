@@ -20,9 +20,9 @@ def test_clustered_ci_is_wider_than_naive_when_trips_are_correlated():
 
 
 def row(trip, delay, line="Teal", route="TEAL", base="IT", hour=18, day="weekday",
-        mtd10_err=None, sched_ts=10_000):
+        mtd10_err=None, sched_ts=10_000, date="20260925"):
     obs = sched_ts + delay
-    return {"trip_id": trip, "service_date": "20260925", "delay_s": delay, "line": line,
+    return {"trip_id": trip, "service_date": date, "delay_s": delay, "line": line,
             "line_color": "006991", "route_id": route, "base_id": base, "hour_local": hour,
             "day_type": day, "scheduled_ts": sched_ts, "observed_ts": obs,
             "mtd_10": None if mtd10_err is None else obs + mtd10_err}
@@ -68,3 +68,16 @@ def test_stop_hour_and_day_labels(conn):
     assert [g["label"] for g in days] == ["Sunday", "Weekday"]
     with pytest.raises(ValueError):
         breakdown(conn, scored, "planet")
+
+
+def test_day_of_week_for_one_line(conn):
+    scored = [(r, pred(r)) for r in [
+        row("F1", 60, date="20260925"), row("F2", 120, date="20260925"),   # Teal, Friday
+        row("M1", 300, date="20260928"),                                    # Teal, Monday
+        row("M2", 999, line="Green", date="20260928"),                      # other line
+        row("W1", 30, date="20260923"), row("W1", 90, date="20260916")]]    # Teal, two Wednesdays
+    res = breakdown(conn, scored, "day_of_week", min_n=1, line="Teal")
+    assert res["lines"] == ["Green", "Teal"] and res["line"] == "Teal"
+    assert [(g["label"], g["n"], g["mean_delay_s"], g["service_days"]) for g in res["groups"]] == [
+        ("Monday", 1, 300, 1), ("Wednesday", 2, 60, 2), ("Friday", 2, 90, 1)]
+    assert res["departures"] == 5
