@@ -18,6 +18,10 @@ def parse_date(yyyymmdd: str) -> date:
     return date(int(yyyymmdd[:4]), int(yyyymmdd[4:6]), int(yyyymmdd[6:8]))
 
 
+def shift_date(yyyymmdd: str, days: int) -> str:
+    return (parse_date(yyyymmdd) + timedelta(days=days)).strftime("%Y%m%d")
+
+
 def service_day_origin(service_date: str) -> int:
     """Epoch seconds of noon-minus-12h on the service date in local time."""
     d = parse_date(service_date)

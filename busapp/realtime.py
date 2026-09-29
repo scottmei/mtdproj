@@ -3,12 +3,15 @@
 MTD publishes absolute predicted times (no `delay`) and drops stops once the
 bus has passed them, so a trip's stop list is "stops still to come".
 """
+import dataclasses
+import sqlite3
 from dataclasses import dataclass, field
 
 import httpx
 from google.transit import gtfs_realtime_pb2 as rt
 
 from . import config
+from .timeutil import shift_date
 
 StopUpdate = rt.TripUpdate.StopTimeUpdate
 TripSR = rt.TripDescriptor.ScheduleRelationship
@@ -24,7 +27,7 @@ class StopRT:
 @dataclass
 class TripRT:
     trip_id: str
-    start_date: str
+    start_date: str  # GTFS service date once to_service_dates() has run (MTD's raw value before)
     route_id: str
     vehicle_id: str | None
     canceled: bool = False
@@ -72,6 +75,28 @@ def parse_trip_updates(data: bytes) -> FeedSnapshot:
             trip.stops[stu.stop_sequence] = StopRT(stu.stop_sequence, stu.stop_id, int(ev.time))
         trips[trip.key] = trip
     return FeedSnapshot(feed_ts=int(msg.header.timestamp), trips=trips)
+
+
+def overnight_trips(conn: sqlite3.Connection) -> frozenset[str]:
+    """Trips whose first stop is scheduled at or after 24:00 on their service day."""
+    return frozenset(r[0] for r in conn.execute(
+        "SELECT trip_id FROM stop_times GROUP BY trip_id HAVING MIN(departure_s) >= 86400"))
+
+
+def to_service_dates(snap: FeedSnapshot, overnight: frozenset[str]) -> FeedSnapshot:
+    """Re-key trips by their GTFS service date.
+
+    MTD's `start_date` is the calendar day a trip starts on. For a trip timetabled as
+    '24:15:00' on service date D that is D+1 (seen on all 390 such trip runs collected,
+    even when the trip is listed before midnight), so pairing it with the timetable as-is
+    puts the schedule a day late. Every other trip's start_date already is its service date.
+    """
+    trips = {}
+    for trip in snap.trips.values():
+        if trip.trip_id in overnight:
+            trip = dataclasses.replace(trip, start_date=shift_date(trip.start_date, -1))
+        trips[trip.key] = trip
+    return FeedSnapshot(snap.feed_ts, trips)
 
 
 def fetch_trip_updates(client: httpx.Client | None = None) -> FeedSnapshot:

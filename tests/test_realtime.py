@@ -1,6 +1,6 @@
-from google.transit import gtfs_realtime_pb2 as rt
+﻿from google.transit import gtfs_realtime_pb2 as rt
 
-from busapp.realtime import parse_trip_updates
+from busapp.realtime import overnight_trips, parse_trip_updates, to_service_dates
 
 
 def make_feed(trips, feed_ts=1000):
@@ -33,3 +33,21 @@ def test_parse_trip_updates():
     assert t1.route_id == "TEAL" and t1.vehicle_id == "V0" and t1.first_sequence == 5
     assert t1.stops[6].predicted_ts == 1200 and t1.stops[6].stop_id == "B:1"
     assert snap.trips[("T2", "20260925")].canceled
+
+
+def test_overnight_trips_are_rekeyed_to_their_service_date(conn):
+    # N1's first stop is 24:15 on its service day; D1 is an ordinary daytime trip
+    conn.executemany("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                     "VALUES (?,?,?,?,?)",
+                     [("N1", 1, "A", 87300, 87300), ("N1", 2, "B", 87400, 87400),
+                      ("D1", 1, "A", 80000, 80000), ("D1", 2, "B", 90000, 90000)])
+    overnight = overnight_trips(conn)
+    assert overnight == {"N1"}  # D1 crosses midnight but starts before it: MTD dates it correctly
+    snap = parse_trip_updates(make_feed([
+        ("N1", "20260929", "ILLINI", [(2, "B:1", 1100)], False),  # MTD: calendar day it starts
+        ("D1", "20260928", "TEAL", [(2, "B:1", 1200)], False),
+    ]))
+    fixed = to_service_dates(snap, overnight)
+    assert set(fixed.trips) == {("N1", "20260928"), ("D1", "20260928")}
+    assert fixed.trips[("N1", "20260928")].start_date == "20260928"
+    assert fixed.trips[("N1", "20260928")].stops[2].predicted_ts == 1100

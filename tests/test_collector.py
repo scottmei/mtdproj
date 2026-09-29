@@ -127,3 +127,24 @@ def test_gap_at_threshold_still_infers(conn):
     full = [(1, "A", base + 60), (2, "B", base + 360)]
     c.process(snap(trip("T1", full)), base)
     assert c.process(snap(trip("T1", full[1:])), base + 90) == 1
+
+
+def test_collector_records_trips_timetabled_after_midnight(conn):
+    # N1 runs at 24:15 on service date SD; MTD's feed dates it SD + 1
+    conn.execute("INSERT INTO trips VALUES ('N1','ILLINI','S1',0,'North','B1')")
+    for seq, secs in [(1, 87300), (2, 87400)]:
+        conn.execute("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                     "VALUES ('N1',?,?,?,?)", (seq, f"S{seq}", secs, secs))
+    c = Collector(conn)
+    base = gtfs_to_epoch(SD, 87300)
+
+    def mtd_trip(stops):
+        t = TripRT("N1", "20260926", "ILLINI", "V1")
+        t.stops.update({seq: StopRT(seq, f"S{seq}", ts) for seq, ts in stops})
+        return snap(t)
+
+    c.process(mtd_trip([(1, base + 90), (2, base + 190)]), base + 60)
+    assert c.process(mtd_trip([(2, base + 190)]), base + 100) == 1
+    row = conn.execute("SELECT service_date, delay_s FROM observed_departures").fetchone()
+    assert tuple(row) == (SD, 90)
+    assert {r[0] for r in conn.execute("SELECT service_date FROM mtd_predictions")} == {SD}

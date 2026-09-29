@@ -61,9 +61,13 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
   `(NE Corner)`, `(SE Far)`, `(SS)`, `(East side)`, `(N. Side)`. `schedule.boarding_label()` spells them
   out in one vocabulary ("NE Corner", "SE Far Side", "South Side", "Island Shelter"), and shows nothing
   when a stop has no location. These describe where on the street you board, not the direction of travel.
-- **Late-night service is scheduled but never tracked.** The timetable lists `... LATE NIGHT` trips until
-  about 5 AM (650–990 stop times an hour), but none of them show up in the realtime feed, while about 97%
-  of early-morning service does. `coverage.py` learns this capture rate for each hour of the day.
+- **After-midnight trips are dated by the calendar day, not the service day.** A trip timetabled at
+  `24:15:00` on service date D arrives in the feed with `start_date` D+1. Every one of the 390 such trip
+  runs we checked did this, even when first listed before midnight. Taken at face value, that puts the
+  schedule a day late, and each observed delay comes out near −86,400 s. Until 2026-09-29 the sanity
+  check silently dropped all of them, which looked like "late-night service is never tracked".
+  `realtime.to_service_dates` maps these trips back to their service date for both the collector and the
+  board. `coverage.py` learns the capture rate for each hour of the day from what is actually observed.
 - **`calendar.txt` is all zeros.** Which services run each day comes only from `calendar_dates.txt`.
 - **Times go past 24:00** (up to `29:09:00`). A GTFS time is measured from "noon minus 12 h" on the
   service date, so the conversion is DST-safe (see `timeutil.py` and its DST test).
@@ -95,15 +99,15 @@ These are quirks of MTD's feeds that the design depends on. All were verified ag
 python scripts\load_gtfs.py         # creates data\bus.db and loads gtfs\ (about 4 s)
 python scripts\run_collector.py     # leave running in its own window; logs to data\collector.log
 python scripts\run_web.py           # http://localhost:8080  (API docs at /docs)
-python -m pytest                    # 85 tests
+python -m pytest                    # 89 tests
 ```
 
 The model needs history, so start the collector as early as possible. While it runs, the collector asks
 Windows not to idle-sleep (closing the lid still sleeps the machine). If more than 90 s pass between
 successful polls, it starts from a fresh baseline instead of guessing departure times across the gap.
 `/api/health` lists collection gaps and estimates what each one cost: scheduled stop times × the
-capture rate for that hour. An overnight gap during untracked late-night service costs nothing; a gap
-during daytime service is flagged. When MTD publishes a new GTFS feed,
+capture rate for that hour, so a gap during hours we rarely observe costs little and a gap during daytime
+service is flagged. When MTD publishes a new GTFS feed,
 replace `gtfs\` and re-run `load_gtfs.py`. Historical tables are kept.
 
 ## Database

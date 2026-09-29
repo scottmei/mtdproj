@@ -14,7 +14,7 @@ import httpx
 
 from . import config
 from .keepawake import prevent_sleep
-from .realtime import FeedSnapshot, fetch_trip_updates
+from .realtime import FeedSnapshot, fetch_trip_updates, overnight_trips, to_service_dates
 from .timeutil import day_type, gtfs_to_epoch, local_dt
 
 log = logging.getLogger("collector")
@@ -99,6 +99,7 @@ class Collector:
                           for r in conn.execute("SELECT trip_id, route_id, direction_id FROM trips")}
         if not self.trip_info:
             raise RuntimeError("No static GTFS loaded. Run scripts/load_gtfs.py first.")
+        self.overnight = overnight_trips(conn)
 
     def _scheduled(self, trip_id: str, seq: int) -> int | None:
         r = self.conn.execute(
@@ -125,6 +126,7 @@ class Collector:
 
     def process(self, cur: FeedSnapshot, poll_ts: int) -> int:
         """Ingest one feed snapshot. Returns the number of new observations written."""
+        cur = to_service_dates(cur, self.overnight)
         n_new = 0
         with self.conn:
             self.last_retracted = self._retract_relisted(cur)

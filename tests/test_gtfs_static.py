@@ -53,3 +53,23 @@ def test_migration_adds_stop_headsign_to_old_database(tmp_path):
     assert cols[-1] == "stop_headsign"
     assert tuple(old.execute("SELECT * FROM stop_times").fetchone()) == ("T1", 1, "A", 10, 10, None)
     db.init_schema(old)  # idempotent
+
+
+def test_migration_moves_overnight_snapshots_back_one_day(tmp_path):
+    from busapp import db
+
+    path = tmp_path / "old.db"
+    old = db.connect(path)
+    db.init_schema(old)
+    old.execute("DELETE FROM meta WHERE key = 'overnight_dates_fixed'")  # as before the fix
+    old.executemany("INSERT INTO stop_times (trip_id, stop_sequence, stop_id, arrival_s, departure_s) "
+                    "VALUES (?,?,?,?,?)", [("N1", 1, "A", 87300, 87300), ("D1", 1, "A", 3600, 3600)])
+    # N1 on two consecutive nights: moving one row onto the other's old date must not collide
+    old.executemany("INSERT INTO mtd_predictions VALUES (?,?,?,?,?,?)",
+                    [("N1", "20260928", 1, 5, 100, 200), ("N1", "20260929", 1, 5, 300, 400),
+                     ("D1", "20260929", 1, 5, 500, 600)])
+    old.commit()
+    db.init_schema(old)
+    db.init_schema(old)  # runs once only
+    rows = sorted(tuple(r) for r in old.execute("SELECT trip_id, service_date, made_at FROM mtd_predictions"))
+    assert rows == [("D1", "20260929", 500), ("N1", "20260927", 100), ("N1", "20260928", 300)]

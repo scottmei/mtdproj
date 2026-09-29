@@ -17,6 +17,7 @@ from .breakdown import DIMENSIONS, breakdown
 from .coverage import coverage_report
 from .mtd_rest import MtdRestClient
 from .predictors import DEFAULT_PREDICTOR, PREDICTORS, get_predictor
+from .realtime import overnight_trips
 from .stop_search import search_stops
 
 log = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
     # small cache, since the live page only ever needs the latest cutoff
     predictors = {name: get_predictor(name, db.connect(db_path), cache_size=2) for name in PREDICTORS}
     rest = rest if rest is not None else MtdRestClient()
-    rt_cache = rt_cache or RealtimeCache()
+    rt_cache = rt_cache or RealtimeCache(overnight=overnight_trips(conn))
     scores = ScoreCache(db_path)  # own connection: scoring never blocks the arrivals board
     if background:
         if rest.enabled:

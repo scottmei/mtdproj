@@ -9,7 +9,7 @@ import httpx
 
 from . import config
 from .predictors import Prediction, PredictionRequest, Predictor
-from .realtime import FeedSnapshot, fetch_trip_updates
+from .realtime import FeedSnapshot, fetch_trip_updates, to_service_dates
 from .schedule import ScheduledVisit, boarding_label, scheduled_visits, stop_group
 
 log = logging.getLogger(__name__)
@@ -91,10 +91,14 @@ def build_board(visits: list[ScheduledVisit], snap: FeedSnapshot | None, predict
 
 
 class RealtimeCache:
-    """Shares one GTFS-RT fetch across requests; serves the last good snapshot on failure."""
+    """Shares one GTFS-RT fetch across requests; serves the last good snapshot on failure.
 
-    def __init__(self, ttl_s: int = config.RT_CACHE_S):
+    Snapshots are keyed by GTFS service date (see realtime.to_service_dates), so pass the
+    overnight trip ids or after-midnight trips never match the schedule."""
+
+    def __init__(self, ttl_s: int = config.RT_CACHE_S, overnight: frozenset[str] = frozenset()):
         self.ttl_s = ttl_s
+        self.overnight = overnight
         self._snap: FeedSnapshot | None = None
         self._fetched_at = 0.0
         self._lock = threading.Lock()
@@ -105,7 +109,7 @@ class RealtimeCache:
         with self._lock:
             if self._snap is None or time.time() - self._fetched_at > self.ttl_s:
                 try:
-                    self._snap = fetch_trip_updates(self._client)
+                    self._snap = to_service_dates(fetch_trip_updates(self._client), self.overnight)
                     self._fetched_at = time.time()
                 except Exception as e:
                     log.warning("GTFS-RT fetch failed: %s", e)

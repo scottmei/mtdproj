@@ -147,3 +147,12 @@ def test_board_rows_carry_boarding_label():
                        "Teal", "006991", "ffffff", 10_000)
     (row,) = build_board([v], None, FixedDelay(0), 9_000)
     assert row.boarding == "South Side"
+
+
+def test_realtime_cache_keys_overnight_trips_by_service_date(monkeypatch):
+    import busapp.arrivals as arrivals
+    t = TripRT("N1", "20260926", "TEAL", "V9")
+    t.stops[5] = StopRT(5, "IT:1", 1100)
+    monkeypatch.setattr(arrivals, "fetch_trip_updates", lambda client: feed(t))
+    snap, fresh = arrivals.RealtimeCache(overnight=frozenset({"N1"})).get()
+    assert fresh and classify(visit("N1", 5, 1000), snap) == ("live", 1100, "V9")

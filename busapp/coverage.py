@@ -1,11 +1,11 @@
 """Collector coverage: find polling gaps and estimate what each one cost.
 
 A gap only matters if we would have observed buses during it. The timetable
-alone overstates this: MTD schedules late-night service until ~5 AM that
-never appears in the realtime feed (0 of ~650-990 stop times per hour were
-observed overnight, vs ~97% during the day). So each gap's scheduled stop
-times are weighted by the capture rate we actually achieve at that local
-hour, learned from hours when the collector was fully up.
+alone can overstate this, since not every scheduled stop time is observed
+(~97% during the day). So each gap's scheduled stop times are weighted by the
+capture rate we actually achieve at that local hour, learned from hours when
+the collector was fully up. (Overnight hours read ~0% until 2026-09-29, when
+after-midnight trips were being discarded: see realtime.to_service_dates.)
 """
 import sqlite3
 from collections import defaultdict
