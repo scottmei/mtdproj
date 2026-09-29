@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, db
-from .accuracy import ScoreCache, backtest
+from .accuracy import ScoreCache
 from .arrivals import RealtimeCache, arrivals_for_stop
 from .breakdown import DIMENSIONS, breakdown
 from .coverage import coverage_report
@@ -109,9 +109,11 @@ def create_app(db_path=None, rest: MtdRestClient | None = None,
 
     @app.get("/api/accuracy")
     def api_accuracy(model: str = DEFAULT_PREDICTOR, days: int = Query(7, ge=1, le=60)):
-        """Backtest of schedule vs MTD live vs our model."""
-        scored = scored_for(model, days)  # validates the model name
-        return backtest(conn, predictors[model], days=days, scored=scored)
+        """Backtest of schedule vs MTD live vs our model (precomputed for the 7-day window)."""
+        try:
+            return scores.summary(model, days)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
 
     @app.get("/api/breakdown")
     def api_breakdown(by: str = "line", model: str = DEFAULT_PREDICTOR,

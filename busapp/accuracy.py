@@ -75,29 +75,42 @@ def score(conn: sqlite3.Connection, predictor: Predictor, days: int = 7,
 
 
 class ScoreCache:
-    """Walk-forward scores shared by the accuracy and breakdown endpoints.
+    """Walk-forward scores, and the accuracy panel's summary of them, shared by the accuracy
+    and breakdown endpoints.
 
-    Scoring every departure takes seconds (~13 s for 100k rows cold), so it runs on its
-    own SQLite connection (WAL allows concurrent readers) and never holds the web app's
-    connection lock; the arrivals board stays responsive while it runs. `keep_warm()`
-    refreshes the default window before it expires, so visitors never wait for it.
+    Scoring every departure takes ~7 s at 115k rows and summarizing it ~5 s more, so both run
+    on this cache's own SQLite connection (WAL allows concurrent readers) and never hold the
+    web app's connection lock. `keep_warm()` recomputes the default window for every model
+    every `ttl_s`; requests accept results up to twice that old, so a visitor is served the
+    previous result instead of waiting for a refresh the background thread is about to do.
     """
 
     DEFAULT = (DEFAULT_PREDICTOR, 7)
+    WARM_DAYS = 7  # the window the accuracy panel shows
 
     def __init__(self, db_path=None, ttl_s: int = 600):
         self.conn = db.connect(db_path)
         self.predictors = {name: get_predictor(name, self.conn) for name in PREDICTORS}
         self.ttl_s = ttl_s
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # summary() calls get() while holding it
         self._data: dict[tuple[str, int], tuple[float, list[Scored]]] = {}
+        self._summaries: dict[tuple[str, int], tuple[float, dict]] = {}  # stamped with scoring time
 
-    def get(self, model: str, days: int, refresh: bool = False) -> list[Scored]:
+    def _check(self, model: str) -> None:
         if model not in self.predictors:
             raise ValueError(f"Unknown model {model!r}; choose from {sorted(self.predictors)}")
+
+    def _fresh(self, hit: tuple[float, object] | None) -> bool:
+        return hit is not None and time.time() - hit[0] < 2 * self.ttl_s
+
+    def get(self, model: str, days: int, refresh: bool = False) -> list[Scored]:
+        self._check(model)
+        hit = self._data.get((model, days))
+        if not refresh and self._fresh(hit):  # no lock: never wait behind a background refresh
+            return hit[1]
         with self._lock:  # concurrent callers wait for one computation instead of repeating it
             hit = self._data.get((model, days))
-            if hit and not refresh and time.time() - hit[0] < self.ttl_s:
+            if not refresh and self._fresh(hit):
                 return hit[1]
             scored = score(self.conn, self.predictors[model], days)
             # keep the default window plus the most recently requested other one
@@ -105,16 +118,35 @@ class ScoreCache:
             self._data[(model, days)] = (time.time(), scored)
             return scored
 
+    def summary(self, model: str, days: int, refresh: bool = False) -> dict:
+        """backtest() for this model and window. Small, so kept for every model."""
+        self._check(model)
+        hit = self._summaries.get((model, days))
+        if not refresh and self._fresh(hit):
+            return hit[1]
+        with self._lock:
+            hit = self._summaries.get((model, days))
+            if not refresh and self._fresh(hit):
+                return hit[1]
+            scored = self.get(model, days, refresh=refresh)
+            stamp = self._data[(model, days)][0]  # expires with the scores it summarizes
+            result = backtest(self.conn, self.predictors[model], days=days, scored=scored)
+            self._summaries[(model, days)] = (stamp, result)
+            return result
+
     def keep_warm(self) -> None:
-        """Run forever in a daemon thread: rescore the default window before its TTL lapses."""
+        """Run forever in a daemon thread: rescore and summarize the accuracy panel's window
+        for every model, default last so its scores stay cached for the breakdown page."""
+        models = sorted(self.predictors, key=lambda m: m == self.DEFAULT[0])
         while True:
             t0 = time.time()
-            try:
-                self.get(*self.DEFAULT, refresh=True)
-                log.info("Scored default window in %.1fs", time.time() - t0)
-            except Exception as e:
-                log.warning("Background scoring failed: %s", e)
-            time.sleep(max(60, self.ttl_s - 60))
+            for model in models:
+                try:
+                    self.summary(model, self.WARM_DAYS, refresh=True)
+                except Exception as e:
+                    log.warning("Background scoring of %s failed: %s", model, e)
+            log.info("Scored and summarized %d models in %.1fs", len(models), time.time() - t0)
+            time.sleep(max(60, self.ttl_s - (time.time() - t0)))
 
 
 def backtest(conn: sqlite3.Connection, predictor: Predictor, days: int = 7,

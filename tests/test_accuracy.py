@@ -58,3 +58,26 @@ def test_score_cache_reuses_then_refreshes(tmp_path):
     assert cache.get("avg_delay", 7, refresh=True) is not first        # recomputed
     with pytest.raises(ValueError):
         cache.get("nope", 7)
+
+
+def test_score_cache_summaries_are_cached_per_model(tmp_path):
+    import pytest
+
+    from busapp import db
+    from busapp.accuracy import ScoreCache
+
+    path = tmp_path / "t.db"
+    c = db.connect(path)
+    db.init_schema(c)
+    add(c, D1, 1, 120)
+    c.commit()
+    cache = ScoreCache(path)
+    first = cache.summary("avg_delay", 7)
+    assert first["model"] == "avg_delay" and first["observations"] == 1
+    assert cache.summary("avg_delay", 7) is first                     # served from cache
+    assert cache.summary("avg_delay", 7, refresh=True) is not first   # recomputed
+    other = cache.summary("shrunk_median", 7)
+    assert other["model"] == "shrunk_median"
+    assert cache.summary("shrunk_median", 7) is other                 # every model keeps its own
+    with pytest.raises(ValueError):
+        cache.summary("nope", 7)
