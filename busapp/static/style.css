@@ -209,24 +209,15 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 24px; font-size: 12p
 .breakdown th.acc, .breakdown td.acc { background: color-mix(in srgb, var(--row-hover) 60%, transparent); }
 .breakdown td.best { font-weight: 700; }
 .breakdown td:first-child { min-width: 190px; }
+.breakdown .head-sub { display: block; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
 .breakdown .sub { display: block; font-size: 11px; color: var(--muted); }
-.breakdown .sub-inline { font-size: 11px; color: var(--muted); }
 .swatch {
   display: inline-block; width: 10px; height: 10px; border-radius: 3px;
   margin-right: 8px; vertical-align: baseline;
 }
 
-.bar-col { min-width: 220px; }
-td.bar-col { cursor: default; }
-td.bar-col:focus { outline: 2px solid var(--accent-2); outline-offset: -2px; }
-.bar-value { display: block; font-variant-numeric: tabular-nums; font-weight: 600; margin-bottom: 4px; }
-.track { position: relative; display: block; height: 14px; }
-.track .zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); opacity: .6; }
-.track .dbar { position: absolute; top: 2px; height: 10px; }
-.track .late-bar { background: var(--late); border-radius: 0 4px 4px 0; }   /* square at the baseline */
-.track .early-bar { background: var(--early); border-radius: 4px 0 0 4px; }
-.track .ci { position: absolute; top: 6px; height: 2px; background: var(--text); opacity: .45; }
-tr:hover .track .dbar, td.bar-col:focus .track .dbar { filter: brightness(1.15); }
+td.mean-col { cursor: default; }
+td.mean-col:focus { outline: 2px solid var(--accent-2); outline-offset: -2px; }
 
 .tooltip {
   position: absolute; z-index: 20; display: flex; flex-direction: column; gap: 2px;
@@ -240,7 +231,5 @@ tr:hover .track .dbar, td.bar-col:focus .track .dbar { filter: brightness(1.15);
 .notes p { margin: 0 0 8px; }
 
 @media (max-width: 640px) {
-  .breakdown th:nth-child(4), .breakdown td:nth-child(4),
   .breakdown th:nth-child(6), .breakdown td:nth-child(6) { display: none; }
-  .bar-col { min-width: 140px; }
 }

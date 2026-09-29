@@ -22,10 +22,11 @@ Level = tuple[str, tuple[str, ...]]
 # (label, grouping columns) from most to least specific
 LEVELS: tuple[Level, ...] = (
     ("route+dir+stop+hour", ("route_id", "direction_id", "stop_id", "hour_local")),
-    ("route+dir+hour", ("route_id", "direction_id", "hour_local")),
     ("line+dir+stop+hour", ("line", "direction_id", "stop_id", "hour_local")),
-    ("route+hour", ("route_id", "hour_local")),
+    ("route+dir+hour", ("route_id", "direction_id", "hour_local")),
     ("line+dir+hour", ("line", "direction_id", "hour_local")),
+    ("route+hour", ("route_id", "hour_local")),
+    ("line+hour", ("line", "hour_local")),
     ("route", ("route_id",)),
     ("line", ("line",)),
 )
